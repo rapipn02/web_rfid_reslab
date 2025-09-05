@@ -266,7 +266,7 @@ export default function Dashboard() {
     return (
         <div>
             {/* Main Content */}
-            <main className="flex-1 p-4 md:p-8 overflow-y-auto">
+            <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
                 {/* Header */}
                 <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                     <div>
