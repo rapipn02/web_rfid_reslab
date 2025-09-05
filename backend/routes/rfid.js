@@ -2,21 +2,50 @@ const express = require('express');
 const router = express.Router();
 const RfidController = require('../controllers/rfidController');
 const ValidationMiddleware = require('../middleware/validation');
+const { 
+  verifyToken, 
+  requirePermission, 
+  sanitizeInput,
+  Auth
+} = require('../middleware');
 
-// POST /api/rfid/scan - Handle RFID scan from ESP32
-router.post('/scan', ValidationMiddleware.validateRfidScan, RfidController.handleRfidScan);
+// ===== PUBLIC ENDPOINTS (untuk ESP32 device) =====
 
-// GET /api/rfid/device/:deviceId/status - Get device status
-router.get('/device/:deviceId/status', RfidController.getDeviceStatus);
+// POST /api/rfid/scan - Handle RFID scan from ESP32 (public endpoint)
+router.post('/scan', 
+  sanitizeInput,
+  ValidationMiddleware.validateRfidScan, 
+  RfidController.handleRfidScan
+);
 
-// POST /api/rfid/device/:deviceId/heartbeat - Device heartbeat
-router.post('/device/:deviceId/heartbeat', RfidController.deviceHeartbeat);
+// POST /api/rfid/device/:deviceId/heartbeat - Device heartbeat (public endpoint)
+router.post('/device/:deviceId/heartbeat', 
+  sanitizeInput,
+  RfidController.deviceHeartbeat
+);
 
-// GET /api/rfid/scans/latest - Get latest RFID scans
-router.get('/scans/latest', RfidController.getLatestScans);
+// ===== PROTECTED ENDPOINTS (untuk admin/operator) =====
 
-// GET /api/rfid/scans/unknown - Get unknown RFID scans
-router.get('/scans/unknown', RfidController.getUnknownScans);
+// GET /api/rfid/device/:deviceId/status - Get device status (requires read permission)
+router.get('/device/:deviceId/status', 
+  verifyToken,
+  requirePermission('read:attendance'),
+  RfidController.getDeviceStatus
+);
+
+// GET /api/rfid/scans/latest - Get latest RFID scans (requires read permission)
+router.get('/scans/latest', 
+  verifyToken,
+  requirePermission('read:attendance'),
+  RfidController.getLatestScans
+);
+
+// GET /api/rfid/scans/unknown - Get unknown RFID scans (requires read permission)
+router.get('/scans/unknown', 
+  verifyToken,
+  requirePermission('read:attendance'),
+  RfidController.getUnknownScans
+);
 
 module.exports = router;
 

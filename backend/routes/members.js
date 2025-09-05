@@ -2,21 +2,53 @@ const express = require('express');
 const router = express.Router();
 const MemberController = require('../controllers/memberController');
 const ValidationMiddleware = require('../middleware/validation');
+const { 
+  verifyToken, 
+  requirePermission, 
+  validateMemberData, 
+  sanitizeInput 
+} = require('../middleware');
 
-// GET /api/members - Get all members
-router.get('/', MemberController.getAllMembers);
+// GET /api/members - Get all members (requires read permission)
+router.get('/', 
+  verifyToken,
+  requirePermission('read:members'),
+  MemberController.getAllMembers
+);
 
-// GET /api/members/:id - Get member by ID
-router.get('/:id', MemberController.getMemberById);
+// GET /api/members/:id - Get member by ID (requires read permission)
+router.get('/:id', 
+  verifyToken,
+  requirePermission('read:members'),
+  MemberController.getMemberById
+);
 
-// POST /api/members - Create new member
-router.post('/', ValidationMiddleware.validateMember, MemberController.createMember);
+// POST /api/members - Create new member (requires create permission)
+router.post('/', 
+  sanitizeInput,
+  verifyToken,
+  requirePermission('create:members'),
+  validateMemberData,
+  ValidationMiddleware.validateMember, 
+  MemberController.createMember
+);
 
-// PUT /api/members/:id - Update member
-router.put('/:id', ValidationMiddleware.validateMember, MemberController.updateMember);
+// PUT /api/members/:id - Update member (requires update permission)
+router.put('/:id', 
+  sanitizeInput,
+  verifyToken,
+  requirePermission('update:members'),
+  validateMemberData,
+  ValidationMiddleware.validateMember, 
+  MemberController.updateMember
+);
 
-// DELETE /api/members/:id - Delete member
-router.delete('/:id', MemberController.deleteMember);
+// DELETE /api/members/:id - Delete member (requires delete permission)
+router.delete('/:id', 
+  verifyToken,
+  requirePermission('delete:members'),
+  MemberController.deleteMember
+);
 
 module.exports = router;
 

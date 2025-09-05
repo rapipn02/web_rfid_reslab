@@ -6,7 +6,9 @@
   "scripts": {
     "start": "node server.js",
     "dev": "nodemon server.js",
-    "setup-db": "node scripts/setupDatabase.js"
+    "setup-db": "node scripts/setupDatabase.js",
+    "setup-admin": "node scripts/setupInitialAdmin.js",
+    "create-admin": "node scripts/createInitialAdmin.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

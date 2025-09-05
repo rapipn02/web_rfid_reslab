@@ -9,11 +9,22 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Trust proxy for rate limiting
+app.set('trust proxy', 1);
+
 // Middleware security
 app.use(helmet());
+
+// CORS configuration untuk frontend
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
-  credentials: true
+  origin: [
+    process.env.FRONTEND_URL || 'http://localhost:3000',
+    'http://localhost:5173', // Vite dev server
+    'http://localhost:3000'  // React dev server
+  ],
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
 
 // Rate limiting
@@ -42,6 +53,9 @@ app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(specs, {
 
 // Routes
 app.use('/api/auth', require('./routes/auth'));
+app.use('/api/public', require('./routes/publicAuth'));
+app.use('/api/setup', require('./routes/setup'));
+app.use('/api/dashboard', require('./routes/dashboard'));
 app.use('/api/members', require('./routes/members'));
 app.use('/api/attendance', require('./routes/attendance'));
 app.use('/api/rfid', require('./routes/rfid'));
