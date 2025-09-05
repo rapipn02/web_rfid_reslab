@@ -100,7 +100,7 @@ export default function LoginPage() {
     };
 
     return (
-        <div className="flex justify-center items-center min-h-screen bg-gray-100 p-4 font-sans">
+        <div data-aos="fade-up" className="flex justify-center items-center min-h-screen bg-gray-100 p-4 font-sans">
             {/* Alert Notification */}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
@@ -236,7 +236,7 @@ export default function LoginPage() {
                         <div className="mb-6">
                             <div className="w-24 h-24 mx-auto bg-white bg-opacity-20 rounded-full flex items-center justify-center mb-4">
                                 <div className="w-16 h-16 bg-white bg-opacity-30 rounded-full flex items-center justify-center">
-                                    <span className="text-2xl font-bold">R</span>
+                                    <img src={ReslabLogo} alt="Reslab Logo" className="w-15 h-15 m-2" />
                                 </div>
                             </div>
                         </div>
