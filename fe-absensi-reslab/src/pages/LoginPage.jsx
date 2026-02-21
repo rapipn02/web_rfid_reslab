@@ -101,7 +101,11 @@ export default function LoginPage() {
 
     return (
         <div data-aos="fade-up" className="flex justify-center items-center min-h-screen bg-gray-100 p-4 font-sans">
+<<<<<<< HEAD
             {}
+=======
+            {/* Alert Notification */}
+>>>>>>> 89831ac93b04d077ece0b9b6e91a794841d99de9
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 

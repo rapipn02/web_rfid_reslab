@@ -324,7 +324,11 @@ export default function EditAnggota() {
 
     return (
         <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
+<<<<<<< HEAD
             {}
+=======
+            {/* Alert Notification */}
+>>>>>>> 89831ac93b04d077ece0b9b6e91a794841d99de9
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 

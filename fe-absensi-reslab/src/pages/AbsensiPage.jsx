@@ -261,6 +261,7 @@ export default function AbsensiPage() {
     };
 
     return (
+<<<<<<< HEAD
         <div className="min-h-screen bg-gray-50">
             <main data-aos="fade-up" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
                 {}
@@ -271,6 +272,21 @@ export default function AbsensiPage() {
                         </h1>
                         <p className="text-xl sm:text-2xl lg:text-3xl font-bold mt-2">
                             Absensi Hari Ini - {getCurrentDay()}, {getCurrentDate()}
+=======
+        <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
+            {/* Header */}
+            <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                <div>
+                    <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
+                        Welcome to Sistem Absensi Reslab, <span className="text-orange-600 font-bold">Admin</span>
+                    </h1>
+                    <p className="text-3xl md:text-4xl font-bold mt-2">
+                        Absensi Hari Ini - {getCurrentDay()}, {getCurrentDate()}
+                    </p>
+                    {lastUpdate && (
+                        <p className="text-gray-500 text-sm mt-1">
+                            Last update: {lastUpdate} • Auto refresh every 15s
+>>>>>>> 89831ac93b04d077ece0b9b6e91a794841d99de9
                         </p>
                     </div>
                     <div className="flex flex-col sm:flex-row items-center space-y-2 sm:space-y-0 sm:space-x-3 w-full sm:w-auto">

@@ -376,6 +376,7 @@ export default function Dashboard() {
     };
 
     return (
+<<<<<<< HEAD
         <div className="min-h-screen bg-gray-50">
             {}
             <main data-aos="fade-up" className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 md:py-8">
@@ -383,6 +384,15 @@ export default function Dashboard() {
                 <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 space-y-4 sm:space-y-0">
                     <div className="flex-1 min-w-0">
                         <h1 className="text-lg sm:text-xl lg:text-2xl font-semibold text-gray-800 truncate">
+=======
+        <div>
+            {/* Main Content */}
+            <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
+                {/* Header */}
+                <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
+>>>>>>> 89831ac93b04d077ece0b9b6e91a794841d99de9
                             Welcome to Sistem Absensi Reslab, <span className="text-orange-600 font-bold">Admin</span>
                         </h1>
                         <p className="text-2xl sm:text-3xl lg:text-4xl font-bold mt-2">Dashboard</p>

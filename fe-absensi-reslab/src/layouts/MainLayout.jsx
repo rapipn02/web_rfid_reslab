@@ -8,8 +8,13 @@ export default function MainLayout() {
       {}
       <Sidebar />
 
+<<<<<<< HEAD
       {}
       <main className="flex-1 p-0 md:p-4 pt-16 md:pt-0 md:ml-64 overflow-y-auto overflow-x-hidden">
+=======
+      {/* Konten halaman */}
+      <main className="flex-1 p-4 md:p-8 pt-16 md:pt-0 overflow-y-auto">
+>>>>>>> 89831ac93b04d077ece0b9b6e91a794841d99de9
         <Outlet />
       </main>
     </div>
