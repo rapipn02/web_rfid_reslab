@@ -67,12 +67,7 @@ Sistem absensi berbasis RFID untuk Robotic and Embedded System Laboratory, Tekni
 ### **Components**
 - `src/components/common/index.jsx` - Reusable UI components
 
-## 🚀 Demo Credentials
 
-```
-Email: admin@reslab.com
-Password: admin123
-```
 
 ## 📊 Data Structure
 
