@@ -1,3 +1,7 @@
 node_modules/
 .env
 *.log
+
+# Firebase credentials - JANGAN PERNAH COMMIT!
+config/*.json
+config/*adminsdk*.json
