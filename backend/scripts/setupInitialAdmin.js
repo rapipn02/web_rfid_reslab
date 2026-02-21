@@ -1,13 +1,10 @@
-/**
- * Setup Initial Admin User
- * Script untuk membuat admin user pertama kali
- */
+
 
 require('dotenv').config();
 const admin = require('firebase-admin');
 const bcrypt = require('bcryptjs');
 
-// Initialize Firebase Admin
+
 const serviceAccount = require('../config/absensi-reslab-db-firebase-adminsdk-fbsvc-b5a3a5b423.json');
 
 admin.initializeApp({
@@ -17,21 +14,21 @@ admin.initializeApp({
 
 async function createInitialAdmin() {
   try {
-    console.log('🚀 Starting initial admin setup...');
+    console.log('Starting initial admin setup...');
 
     const usersRef = admin.firestore().collection('users');
     
-    // Check if admin already exists
+    
     const adminQuery = await usersRef.where('email', '==', 'admin@reslab.com').get();
     
     if (!adminQuery.empty) {
-      console.log('✅ Admin user already exists!');
+      console.log('Admin user already exists!');
       console.log('Email: admin@reslab.com');
       process.exit(0);
     }
 
-    // Create admin user
-    const adminPassword = 'admin123456'; // Ganti dengan password yang lebih aman
+    
+    const adminPassword = 'admin123456'; 
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(adminPassword, saltRounds);
 
@@ -49,15 +46,15 @@ async function createInitialAdmin() {
 
     const adminDoc = await usersRef.add(adminData);
 
-    console.log('✅ Initial admin user created successfully!');
-    console.log('📧 Email: admin@reslab.com');
-    console.log('🔑 Password: admin123456');
-    console.log('👤 User ID:', adminDoc.id);
+    console.log('Initial admin user created successfully!');
+    console.log('Email: admin@reslab.com');
+    console.log('Password: admin123456');
+    console.log('User ID:', adminDoc.id);
     console.log('');
-    console.log('⚠️  IMPORTANT: Please change the default password after first login!');
+    console.log('IMPORTANT: Please change the default password after first login!');
     console.log('');
 
-    // Also create some sample users for testing
+    
     const sampleUsers = [
       {
         nama: 'Operator Reslab',
@@ -79,28 +76,28 @@ async function createInitialAdmin() {
       }
     ];
 
-    console.log('🔄 Creating sample users...');
+    console.log('Creating sample users...');
     
     for (const userData of sampleUsers) {
       const userDoc = await usersRef.add(userData);
-      console.log(`✅ Created ${userData.role}: ${userData.email} (ID: ${userDoc.id})`);
+      console.log(`Created ${userData.role}: ${userData.email} (ID: ${userDoc.id})`);
     }
 
     console.log('');
-    console.log('🎉 Setup completed successfully!');
+    console.log('Setup completed successfully!');
     console.log('');
     console.log('Login credentials:');
-    console.log('👨‍💼 Admin: admin@reslab.com / admin123456');
-    console.log('👨‍🔧 Operator: operator@reslab.com / operator123');
-    console.log('👁️  Viewer: viewer@reslab.com / viewer123');
+    console.log('Admin: admin@reslab.com / admin123456');
+    console.log('Operator: operator@reslab.com / operator123');
+    console.log('Viewer: viewer@reslab.com / viewer123');
 
   } catch (error) {
-    console.error('❌ Error creating initial admin:', error);
+    console.error('Error creating initial admin:', error);
     process.exit(1);
   }
 
   process.exit(0);
 }
 
-// Run setup
+
 createInitialAdmin();

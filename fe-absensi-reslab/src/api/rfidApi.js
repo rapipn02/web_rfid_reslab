@@ -1,18 +1,13 @@
-/**
- * RFID API Service
- * Service untuk handle RFID scanning dengan backend
- */
+
 
 import httpClient from './httpClient.js';
 import { API_ENDPOINTS } from './config.js';
 
 class RfidApi {
-  /**
-   * Scan RFID
-   */
+  
   static async scan(rfidData) {
     try {
-      console.log('📡 RfidApi.scan:', rfidData);
+      console.log('RfidApi.scan:', rfidData);
       
       const response = await httpClient.post(API_ENDPOINTS.rfid.scan, rfidData);
       
@@ -31,12 +26,58 @@ class RfidApi {
     }
   }
 
-  /**
-   * Get latest RFID scans
-   */
-  static async getLatestScans() {
+  
+  static async startRealtimeScan(deviceId) {
     try {
-      console.log('📡 RfidApi.getLatestScans');
+      console.log('RfidApi.startRealtimeScan:', deviceId);
+      
+      const response = await httpClient.post(`/rfid/devices/${deviceId}/realtime-mode`, { 
+        isActive: true 
+      });
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: 'Realtime scan mode activated'
+      };
+    } catch (error) {
+      console.error('RfidApi.startRealtimeScan error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal mengaktifkan realtime scan mode',
+        data: null
+      };
+    }
+  }
+
+  
+  static async stopRealtimeScan(deviceId) {
+    try {
+      console.log('RfidApi.stopRealtimeScan:', deviceId);
+      
+      const response = await httpClient.post(`/rfid/devices/${deviceId}/realtime-mode`, { 
+        isActive: false 
+      });
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: 'Realtime scan mode deactivated'
+      };
+    } catch (error) {
+      console.error('RfidApi.stopRealtimeScan error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal menonaktifkan realtime scan mode',
+        data: null
+      };
+    }
+  }
+
+  
+  static async getLatestScans(limit = 10) {
+    try {
+      console.log('RfidApi.getLatestScans');
       
       const response = await httpClient.get(API_ENDPOINTS.rfid.getLatestScans);
       
@@ -48,18 +89,16 @@ class RfidApi {
       console.error('RfidApi.getLatestScans error:', error);
       return {
         success: false,
-        message: error.message || 'Gagal mengambil data scan RFID',
+        message: error.message || 'Gagal mengambil data scan terbaru',
         data: []
       };
     }
   }
 
-  /**
-   * Get unknown RFID scans
-   */
+  
   static async getUnknownScans() {
     try {
-      console.log('📡 RfidApi.getUnknownScans');
+      console.log('RfidApi.getUnknownScans');
       
       const response = await httpClient.get(API_ENDPOINTS.rfid.getUnknownScans);
       
@@ -71,18 +110,51 @@ class RfidApi {
       console.error('RfidApi.getUnknownScans error:', error);
       return {
         success: false,
-        message: error.message || 'Gagal mengambil data scan RFID tidak dikenal',
+        message: error.message || 'Gagal mengambil data scan tidak dikenal',
         data: []
       };
     }
   }
 
-  /**
-   * Get device status
-   */
+
+
+
+
+
+
+
+
+
+
+  
+  static async toggleRegistrationMode(deviceId, isActive) {
+    try {
+      console.log('RfidApi.toggleRegistrationMode:', { deviceId, isActive });
+      
+      const response = await httpClient.post(
+        `/rfid/devices/${deviceId}/registration-mode`,
+        { isActive }
+      );
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: `Registration mode ${isActive ? 'activated' : 'deactivated'}`
+      };
+    } catch (error) {
+      console.error('RfidApi.toggleRegistrationMode error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal mengubah registration mode',
+        data: null
+      };
+    }
+  }
+
+  
   static async getDeviceStatus(deviceId) {
     try {
-      console.log('📡 RfidApi.getDeviceStatus:', deviceId);
+      console.log('RfidApi.getDeviceStatus:', deviceId);
       
       const response = await httpClient.get(API_ENDPOINTS.rfid.getDeviceStatus(deviceId));
       
@@ -100,12 +172,10 @@ class RfidApi {
     }
   }
 
-  /**
-   * Send device heartbeat
-   */
+  
   static async deviceHeartbeat(deviceId, heartbeatData) {
     try {
-      console.log('📡 RfidApi.deviceHeartbeat:', deviceId, heartbeatData);
+      console.log('RfidApi.deviceHeartbeat:', deviceId, heartbeatData);
       
       const response = await httpClient.post(API_ENDPOINTS.rfid.deviceHeartbeat(deviceId), heartbeatData);
       

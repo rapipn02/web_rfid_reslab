@@ -1,7 +1,4 @@
-/**
- * Store Manager
- * Centralized state management dengan caching dan subscription system
- */
+
 
 import MembersApi from './membersApi.js';
 import AttendanceApi from './attendanceApi.js';
@@ -31,21 +28,17 @@ class StoreManager {
       attendanceStats: null
     };
 
-    // Cache duration in milliseconds (5 minutes)
+    
     this.CACHE_DURATION = 5 * 60 * 1000;
   }
 
-  /**
-   * Subscribe to store updates
-   */
+  
   subscribe(callback) {
     this.subscribers.add(callback);
     return () => this.subscribers.delete(callback);
   }
 
-  /**
-   * Notify all subscribers
-   */
+  
   notify(dataType = null) {
     this.subscribers.forEach(callback => {
       try {
@@ -56,39 +49,29 @@ class StoreManager {
     });
   }
 
-  /**
-   * Check if cache is valid
-   */
+  
   isCacheValid(dataType) {
     const lastUpdated = this.cache.lastUpdated[dataType];
     if (!lastUpdated) return false;
     return (Date.now() - lastUpdated) < this.CACHE_DURATION;
   }
 
-  /**
-   * Set loading state
-   */
+  
   setLoading(dataType, isLoading) {
     this.isLoading[dataType] = isLoading;
   }
 
-  /**
-   * Set error state
-   */
+  
   setError(dataType, error) {
     this.errors[dataType] = error;
   }
 
-  /**
-   * Clear error state
-   */
+  
   clearError(dataType) {
     this.errors[dataType] = null;
   }
 
-  /**
-   * Get members with caching
-   */
+  
   async getMembers(forceRefresh = false) {
     if (!forceRefresh && this.isCacheValid('members')) {
       return this.cache.members;
@@ -115,13 +98,11 @@ class StoreManager {
       this.setError('members', error);
       this.setLoading('members', false);
       console.error('Error fetching members:', error);
-      return this.cache.members; // Return cached data on error
+      return this.cache.members; 
     }
   }
 
-  /**
-   * Get attendance with caching
-   */
+  
   async getAttendance(forceRefresh = false) {
     if (!forceRefresh && this.isCacheValid('attendance')) {
       return this.cache.attendance;
@@ -148,13 +129,11 @@ class StoreManager {
       this.setError('attendance', error);
       this.setLoading('attendance', false);
       console.error('Error fetching attendance:', error);
-      return this.cache.attendance; // Return cached data on error
+      return this.cache.attendance; 
     }
   }
 
-  /**
-   * Get attendance statistics with caching
-   */
+  
   async getAttendanceStats(forceRefresh = false) {
     if (!forceRefresh && this.isCacheValid('attendanceStats')) {
       return this.cache.attendanceStats;
@@ -186,20 +165,18 @@ class StoreManager {
       this.setError('attendanceStats', error);
       this.setLoading('attendanceStats', false);
       console.error('Error fetching attendance stats:', error);
-      return this.cache.attendanceStats; // Return cached data on error
+      return this.cache.attendanceStats; 
     }
   }
 
-  /**
-   * Get chart data (derived from attendance data)
-   */
+  
   getChartData() {
     const attendance = this.cache.attendance;
     if (!attendance || attendance.length === 0) {
       return [];
     }
 
-    // Group attendance by date
+    
     const groupedByDate = attendance.reduce((acc, record) => {
       const date = record.tanggal;
       if (!acc[date]) {
@@ -215,21 +192,19 @@ class StoreManager {
       return acc;
     }, {});
 
-    // Convert to array and sort by date
+    
     return Object.values(groupedByDate)
       .sort((a, b) => new Date(a.tanggal) - new Date(b.tanggal))
-      .slice(-7); // Last 7 days
+      .slice(-7); 
   }
 
-  /**
-   * Add new member
-   */
+  
   async addMember(memberData) {
     try {
       const response = await MembersApi.create(memberData);
       
       if (response.success) {
-        // Update cache
+        
         this.cache.members.push(response.data);
         this.cache.lastUpdated.members = Date.now();
         this.notify('members');
@@ -242,15 +217,13 @@ class StoreManager {
     }
   }
 
-  /**
-   * Update member
-   */
+  
   async updateMember(id, memberData) {
     try {
       const response = await MembersApi.update(id, memberData);
       
       if (response.success) {
-        // Update cache
+        
         const index = this.cache.members.findIndex(m => m.id === id);
         if (index !== -1) {
           this.cache.members[index] = response.data;
@@ -266,15 +239,13 @@ class StoreManager {
     }
   }
 
-  /**
-   * Delete member
-   */
+  
   async deleteMember(id) {
     try {
       const response = await MembersApi.delete(id);
       
       if (response.success) {
-        // Update cache
+        
         this.cache.members = this.cache.members.filter(m => m.id !== id);
         this.cache.lastUpdated.members = Date.now();
         this.notify('members');
@@ -287,9 +258,7 @@ class StoreManager {
     }
   }
 
-  /**
-   * Force refresh all cached data
-   */
+  
   async refreshAll() {
     await Promise.all([
       this.getMembers(true),
@@ -298,9 +267,7 @@ class StoreManager {
     ]);
   }
 
-  /**
-   * Clear all cache
-   */
+  
   clearCache() {
     this.cache = {
       members: [],
@@ -316,6 +283,6 @@ class StoreManager {
   }
 }
 
-// Create and export singleton instance
+
 const storeManager = new StoreManager();
 export default storeManager;

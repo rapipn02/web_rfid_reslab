@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, User, ChevronDown, ChevronLeft, ChevronRight, Download, X, FileText, Table, BarChart3, CheckCircle, AlertTriangle } from 'lucide-react';
 import AttendanceApi from '../api/attendanceApi';
 import MembersApi from '../api/membersApi';
+import { DashboardApi } from '../api/index.js';
 
 export default function LaporanPage() {
     const [startDate, setStartDate] = useState('');
@@ -11,34 +12,77 @@ export default function LaporanPage() {
     const [filteredData, setFilteredData] = useState([]);
     const [attendanceData, setAttendanceData] = useState([]);
     const [showAlert, setShowAlert] = useState({ show: false, message: '', type: '' });
+    const [dashboardStats, setDashboardStats] = useState({
+        totalAttendance: 0,
+        hadir: 0,
+        tidakPiket: 0,
+        sedangPiket: 0,
+        belumPiket: 0
+    });
 
-    const itemsPerPage = 8;
+    const itemsPerPage = 10;
 
     useEffect(() => {
         const loadData = async () => {
             try {
-                // Load attendance data dengan data member yang sudah merged
-                const attendanceResponse = await AttendanceApi.getAll();
-                const membersResponse = await MembersApi.getAll();
+                
+                const [attendanceResponse, membersResponse, dashboardResponse] = await Promise.all([
+                    AttendanceApi.getAll(),
+                    MembersApi.getAll(),
+                    DashboardApi.getDashboardData()
+                ]);
                 
                 if (attendanceResponse.success && membersResponse.success) {
-                    // Merge data attendance dengan member info
+                    
                     const mergedData = attendanceResponse.data.map(attendance => {
-                        const member = membersResponse.data.find(m => m.id === attendance.memberId);
+                        
+                        const member = membersResponse.data.find(m => 
+                            m.id === attendance.memberId || 
+                            m.id === attendance.anggotaId ||
+                            m.nim === attendance.nim ||
+                            m.idRfid === attendance.idRfid ||
+                            (m.nama && attendance.nama && m.nama.toLowerCase().trim() === attendance.nama.toLowerCase().trim())
+                        );
+                        
                         return {
                             ...attendance,
-                            nama: member?.nama || 'Unknown',
-                            nim: member?.nim || 'Unknown'
+                            
+                            nama: member?.nama || attendance.nama || 'Unknown Member',
+                            nim: member?.nim || attendance.nim || 'N/A',
+                            idRfid: member?.idRfid || attendance.idRfid || 'N/A',
+                            member: member || null
                         };
                     });
                     
-                    setAttendanceData(mergedData);
-                    setFilteredData(mergedData);
-                } else {
-                    console.error('Failed to load data:', {
-                        attendance: attendanceResponse,
-                        members: membersResponse
+                    console.log('Total attendance records:', mergedData.length);
+                    
+                    
+                    const validData = mergedData.filter(item => {
+                        const hasValidName = item.nama && item.nama.trim().length > 0 && item.nama !== 'Unknown Member';
+                        const hasValidDate = item.tanggal || item.createdAt;
+                        return hasValidName && hasValidDate;
                     });
+                    
+                    console.log('Valid records:', validData.length);
+                    console.log('Filtered out:', mergedData.length - validData.length, 'incomplete records');
+                    
+                    setAttendanceData(validData);
+                    setFilteredData(validData);
+                }
+                
+                
+                if (dashboardResponse.success && dashboardResponse.data) {
+                    setDashboardStats({
+                        totalAttendance: dashboardResponse.data.stats.totalAttendance || 0,
+                        hadir: dashboardResponse.data.stats.hadir || 0,
+                        tidakPiket: dashboardResponse.data.stats.tidakPiket || 0,
+                        sedangPiket: dashboardResponse.data.stats.sedangPiket || 0,
+                        belumPiket: dashboardResponse.data.stats.belumPiket || 0
+                    });
+                }
+                
+                if (!attendanceResponse.success || !membersResponse.success) {
+                    console.error('Failed to load data:', { attendance: attendanceResponse, members: membersResponse });
                     showNotification('Gagal memuat data laporan', 'error');
                 }
             } catch (error) {
@@ -57,10 +101,17 @@ export default function LaporanPage() {
         }, 3000);
     };
 
-    const totalItems = filteredData.length;
+    
+    const validFilteredData = filteredData.filter(item => {
+        const hasValidName = item.nama && item.nama.trim().length > 0 && item.nama !== 'Unknown Member';
+        const hasValidDate = item.tanggal || item.createdAt;
+        return hasValidName && hasValidDate;
+    });
+    
+    const totalItems = validFilteredData.length;
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
-    const currentData = filteredData.slice(startIndex, startIndex + itemsPerPage);
+    const currentData = validFilteredData.slice(startIndex, startIndex + itemsPerPage);
 
     const handlePreview = () => {
         if (!startDate && !endDate) {
@@ -77,7 +128,7 @@ export default function LaporanPage() {
         const end = endDate ? new Date(endDate) : null;
 
         const newFilteredData = attendanceData.filter(item => {
-            // Gunakan tanggal dari createdAt atau buat tanggal hari ini jika tidak ada
+            
             const itemDateStr = item.tanggal || item.createdAt?.split('T')[0] || new Date().toISOString().split('T')[0];
             const itemDate = new Date(itemDateStr);
             return (!start || itemDate >= start) && (!end || itemDate <= end);
@@ -105,7 +156,7 @@ export default function LaporanPage() {
         const headers = ["No", "Nama", "Tanggal", "Jam Datang", "Status"];
         const rows = data.map((item, index) => [
             index + 1,
-            `"${item.nama}"`, // Quote names in case they contain commas
+            `"${item.nama}"`, 
             item.tanggal || item.createdAt?.split('T')[0] || 'N/A',
             item.jamDatang || '-',
             item.status
@@ -115,10 +166,13 @@ export default function LaporanPage() {
     };
 
     const generateTextReport = (data) => {
-        const stats = {
+        const reportStats = {
             total: data.length,
             hadir: data.filter(item => item.status === 'Hadir').length,
-            tidakHadir: data.filter(item => item.status === 'Tidak Hadir').length
+            tidakPiket: data.filter(item => 
+                item.status === 'Tidak Hadir' || item.status === 'Tidak Piket'
+            ).length,
+            sedangPiket: data.filter(item => item.status === 'Sedang Piket').length
         };
 
         let report = `LAPORAN ABSENSI RESLAB\n`;
@@ -130,9 +184,10 @@ export default function LaporanPage() {
         report += `Tanggal Generate: ${new Date().toLocaleDateString('id-ID')}\n\n`;
         
         report += `STATISTIK:\n`;
-        report += `- Total Records: ${stats.total}\n`;
-        report += `- Hadir: ${stats.hadir} (${((stats.hadir/stats.total)*100).toFixed(1)}%)\n`;
-        report += `- Tidak Hadir: ${stats.tidakHadir} (${((stats.tidakHadir/stats.total)*100).toFixed(1)}%)\n\n`;
+        report += `- Total Records: ${reportStats.total}\n`;
+        report += `- Hadir: ${reportStats.hadir} (${reportStats.total > 0 ? ((reportStats.hadir/reportStats.total)*100).toFixed(1) : '0'}%)\n`;
+        report += `- Tidak Piket: ${reportStats.tidakPiket} (${reportStats.total > 0 ? ((reportStats.tidakPiket/reportStats.total)*100).toFixed(1) : '0'}%)\n`;
+        report += `- Sedang Piket: ${reportStats.sedangPiket} (${reportStats.total > 0 ? ((reportStats.sedangPiket/reportStats.total)*100).toFixed(1) : '0'}%)\n\n`;
         
         report += `DETAIL ABSENSI:\n`;
         report += `${'No'.padEnd(4)} ${'Nama'.padEnd(25)} ${'Tanggal'.padEnd(12)} ${'Jam Datang'.padEnd(12)} Status\n`;
@@ -221,7 +276,7 @@ export default function LaporanPage() {
     const getStatusColor = (status) => {
         switch (status) {
             case 'Hadir': return 'bg-green-100 text-green-800';
-            case 'Tidak Hadir': return 'bg-red-100 text-red-800';
+            case 'Tidak Piket': return 'bg-red-100 text-red-800';
             case 'Sedang Piket': return 'bg-blue-100 text-blue-800';
             default: return 'bg-gray-100 text-gray-800';
         }
@@ -233,17 +288,21 @@ export default function LaporanPage() {
         }
     };
 
-    // Check if any filter is active
+    
     const hasActiveFilter = startDate || endDate;
 
-    // Statistics for filtered data
+    
     const stats = {
         total: filteredData.length,
         hadir: filteredData.filter(item => item.status === 'Hadir').length,
-        tidakHadir: filteredData.filter(item => item.status === 'Tidak Hadir').length
+        tidakHadir: filteredData.filter(item => 
+            item.status === 'Tidak Hadir' || item.status === 'Tidak Piket'
+        ).length,
+        sedangPiket: filteredData.filter(item => item.status === 'Sedang Piket').length,
+        belumPiket: filteredData.filter(item => item.status === 'Belum Piket').length
     };
 
-    // Helper function untuk format hari/tanggal
+    
     const FormatDayDate = (dateString) => {
         if (!dateString) return 'N/A';
         
@@ -258,7 +317,7 @@ export default function LaporanPage() {
         return `${dayName} / ${day}-${month}-${year}`;
     };
 
-    // Helper function untuk menghitung durasi
+    
     const CalculateDuration = (jamDatang, jamPulang) => {
         if (!jamDatang || !jamPulang || jamDatang === '-' || jamPulang === '-') {
             return '-';
@@ -273,7 +332,7 @@ export default function LaporanPage() {
             
             let diffMinutes = endMinutes - startMinutes;
             
-            // Handle case where end time is next day
+            
             if (diffMinutes < 0) {
                 diffMinutes += 24 * 60;
             }
@@ -289,7 +348,7 @@ export default function LaporanPage() {
 
     return (
         <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
-            {/* Alert Notification */}
+            {}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 
@@ -307,25 +366,26 @@ export default function LaporanPage() {
                 </div>
             )}
 
-            {/* Header */}
+            {}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
                         Welcome to Sistem Absensi Reslab, <span className="text-orange-600 font-bold">Admin</span>
                     </h1>
-                    <p className="text-3xl md:text-4xl font-bold mt-2">Laporan</p>
+                    <p className="text-3xl md:text-4xl font-bold mt-2">
+                        Laporan Absensi RFID RESLAB {!hasActiveFilter }
+                    </p>
                 </div>
                 <div className="mt-4 sm:mt-0 flex items-center bg-white rounded-full py-2 px-4 shadow-sm cursor-pointer">
                     <User size={20} className="text-gray-600 mr-2" />
-                    <span className="font-medium text-gray-700">Admin</span>
-                    <ChevronDown size={18} className="ml-2 text-gray-500" />
+                    <span className="font-medium text-gray-700">reslab jaya</span>
                 </div>
             </header>
 
-            {/* Filter & Export */}
+            {}
             <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end mb-6 gap-4">
                 <div className="flex flex-wrap items-end gap-4">
-                    {/* Dari Tanggal */}
+                    {}
                     <div className="relative flex flex-col">
                         <label className="text-xs font-medium text-gray-600 mb-1">Dari Tanggal</label>
                         <input
@@ -337,7 +397,7 @@ export default function LaporanPage() {
                         <Calendar size={18} className="absolute left-3 bottom-2.5 text-gray-400" />
                     </div>
                     
-                    {/* Sampai */}
+                    {}
                     <div className="relative flex flex-col">
                         <label className="text-xs font-medium text-gray-600 mb-1">Sampai</label>
                         <input
@@ -355,7 +415,7 @@ export default function LaporanPage() {
                         Preview
                     </button>
                     
-                    {/* Clear Filter Button */}
+                    {}
                     {hasActiveFilter && (
                         <button
                             onClick={handleClearFilter}
@@ -367,7 +427,7 @@ export default function LaporanPage() {
                     )}
                 </div>
 
-                {/* Export Dropdown */}
+                {}
                 <div className="relative">
                     <button
                         onClick={() => setOpenExport(!openExport)}
@@ -408,7 +468,7 @@ export default function LaporanPage() {
                 </div>
             </div>
 
-            {/* Active Filter Indicator */}
+            {}
             {hasActiveFilter && (
                 <div className="mb-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                     <div className="flex items-center justify-between">
@@ -428,32 +488,56 @@ export default function LaporanPage() {
                 </div>
             )}
 
-            {/* Statistics Cards */}
-            <section className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-blue-500">
-                    <h4 className="text-sm font-medium text-gray-600">Total Records</h4>
-                    <p className="text-2xl font-bold text-gray-800">{stats.total}</p>
+            {}
+            <section className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 mb-6">
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border-l-4 border-blue-500">
+                    <h4 className="text-sm sm:text-base font-medium text-gray-600">Total Records</h4>
+                    <p className="text-xl sm:text-3xl font-bold text-gray-800 mt-2">
+                        {hasActiveFilter ? stats.total : dashboardStats.totalAttendance}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">
                         {hasActiveFilter ? 'Filtered' : 'All time'}
                     </p>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-green-500">
-                    <h4 className="text-sm font-medium text-gray-600">Hadir</h4>
-                    <p className="text-2xl font-bold text-green-600">{stats.hadir}</p>
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border-l-4 border-green-500">
+                    <h4 className="text-sm sm:text-base font-medium text-gray-600">Hadir</h4>
+                    <p className="text-xl sm:text-3xl font-bold text-green-600 mt-2">
+                        {hasActiveFilter ? stats.hadir : dashboardStats.hadir}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">
-                        {stats.total > 0 ? `${((stats.hadir/stats.total)*100).toFixed(1)}%` : '0%'}
+                        {hasActiveFilter 
+                            ? (stats.total > 0 ? `${((stats.hadir/stats.total)*100).toFixed(1)}%` : '0%')
+                            : (dashboardStats.totalAttendance > 0 ? `${((dashboardStats.hadir/dashboardStats.totalAttendance)*100).toFixed(1)}%` : '0%')
+                        }
                     </p>
                 </div>
-                <div className="bg-white rounded-lg p-4 shadow-sm border-l-4 border-red-500">
-                    <h4 className="text-sm font-medium text-gray-600">Tidak Hadir</h4>
-                    <p className="text-2xl font-bold text-red-600">{stats.tidakHadir}</p>
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border-l-4 border-red-500">
+                    <h4 className="text-sm sm:text-base font-medium text-gray-600">Tidak Piket</h4>
+                    <p className="text-xl sm:text-3xl font-bold text-red-600 mt-2">
+                        {hasActiveFilter ? stats.tidakHadir : dashboardStats.tidakPiket}
+                    </p>
                     <p className="text-xs text-gray-500 mt-1">
-                        {stats.total > 0 ? `${((stats.tidakHadir/stats.total)*100).toFixed(1)}%` : '0%'}
+                        {hasActiveFilter 
+                            ? (stats.total > 0 ? `${((stats.tidakHadir/stats.total)*100).toFixed(1)}%` : '0%')
+                            : (dashboardStats.totalAttendance > 0 ? `${((dashboardStats.tidakPiket/dashboardStats.totalAttendance)*100).toFixed(1)}%` : '0%')
+                        }
+                    </p>
+                </div>
+                <div className="bg-white rounded-xl p-4 sm:p-6 shadow-md border-l-4 border-yellow-500">
+                    <h4 className="text-sm sm:text-base font-medium text-gray-600">Sedang Piket</h4>
+                    <p className="text-xl sm:text-3xl font-bold text-yellow-600 mt-2">
+                        {hasActiveFilter ? stats.sedangPiket : dashboardStats.sedangPiket}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                        {hasActiveFilter 
+                            ? (stats.total > 0 ? `${((stats.sedangPiket/stats.total)*100).toFixed(1)}%` : '0%')
+                            : (dashboardStats.totalAttendance > 0 ? `${((dashboardStats.sedangPiket/dashboardStats.totalAttendance)*100).toFixed(1)}%` : '0%')
+                        }
                     </p>
                 </div>
             </section>
 
-            {/* Laporan Table */}
+            {}
             <section className="bg-white rounded-xl p-6 shadow-md">
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-lg font-semibold text-gray-700">
@@ -488,7 +572,20 @@ export default function LaporanPage() {
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">{item.nama}</td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                                            {FormatDayDate(item.tanggal || item.createdAt?.split('T')[0])}
+                                            {(() => {
+                                                if (item.tanggal) return FormatDayDate(item.tanggal);
+                                                if (item.createdAt) {
+                                                    try {
+                                                        const date = new Date(item.createdAt);
+                                                        if (!isNaN(date.getTime())) {
+                                                            return FormatDayDate(date.toISOString().split('T')[0]);
+                                                        }
+                                                    } catch {
+                                                        return '-';
+                                                    }
+                                                }
+                                                return '-';
+                                            })()}
                                         </td>
                                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                                             {item.jamDatang === '-' ? (
@@ -537,45 +634,58 @@ export default function LaporanPage() {
                     </table>
                 </div>
 
-                {/* Pagination */}
-                {totalPages > 1 && (
-                    <div className="flex flex-col sm:flex-row justify-between items-center mt-6 gap-4">
-                        <div className="text-sm text-gray-500">
+                {}
+                {filteredData.length > 0 && (
+                    <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mt-6 space-y-3 sm:space-y-0">
+                        <div className="text-xs sm:text-sm text-gray-500 order-2 sm:order-1">
                             Menampilkan {startIndex + 1} sampai {Math.min(startIndex + itemsPerPage, totalItems)} dari {totalItems} Data
                         </div>
-                        <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                            <button
-                                onClick={() => goToPage(currentPage - 1)}
-                                disabled={currentPage === 1}
-                                className="relative inline-flex items-center px-3 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <ChevronLeft size={16} />
-                                <span className="ml-1">Sebelumnya</span>
-                            </button>
-                            
-                            {Array.from({ length: totalPages }, (_, index) => (
+                        {totalPages > 1 && (
+                            <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px order-1 sm:order-2">
                                 <button
-                                    key={index}
-                                    onClick={() => goToPage(index + 1)}
-                                    className={`relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium ${
-                                        index + 1 === currentPage 
-                                            ? 'text-white bg-orange-500 font-semibold' 
-                                            : 'bg-white text-gray-700 hover:bg-gray-50'
-                                    }`}
+                                    onClick={() => goToPage(currentPage - 1)}
+                                    disabled={currentPage === 1}
+                                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
                                 >
-                                    {index + 1}
+                                    <ChevronLeft size={14} className="sm:mr-1" />
+                                    <span className="hidden sm:inline">Sebelumnya</span>
                                 </button>
-                            ))}
-                            
-                            <button
-                                onClick={() => goToPage(currentPage + 1)}
-                                disabled={currentPage === totalPages}
-                                className="relative inline-flex items-center px-3 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-                            >
-                                <span className="mr-1">Selanjutnya</span>
-                                <ChevronRight size={16} />
-                            </button>
-                        </nav>
+                                {Array.from({ length: Math.min(totalPages, 5) }, (_, index) => {
+                                    let pageNum;
+                                    if (totalPages <= 5) {
+                                        pageNum = index + 1;
+                                    } else if (currentPage <= 3) {
+                                        pageNum = index + 1;
+                                    } else if (currentPage >= totalPages - 2) {
+                                        pageNum = totalPages - 4 + index;
+                                    } else {
+                                        pageNum = currentPage - 2 + index;
+                                    }
+                                    
+                                    return (
+                                        <button
+                                            key={pageNum}
+                                            onClick={() => goToPage(pageNum)}
+                                            className={`relative inline-flex items-center px-3 sm:px-4 py-2 border border-gray-300 text-xs sm:text-sm font-medium ${
+                                                pageNum === currentPage 
+                                                    ? 'text-white bg-orange-500 font-semibold' 
+                                                    : 'bg-white text-gray-700 hover:bg-gray-50'
+                                            }`}
+                                        >
+                                            {pageNum}
+                                        </button>
+                                    );
+                                })}
+                                <button
+                                    onClick={() => goToPage(currentPage + 1)}
+                                    disabled={currentPage === totalPages}
+                                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-xs sm:text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                    <span className="hidden sm:inline mr-1">Selanjutnya</span>
+                                    <ChevronRight size={14} />
+                                </button>
+                            </nav>
+                        )}
                     </div>
                 )}
             </section>

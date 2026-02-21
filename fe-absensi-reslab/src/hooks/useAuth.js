@@ -1,7 +1,4 @@
-/**
- * Auth Hook
- * Hook untuk menggunakan AuthContext
- */
+
 
 import { useContext } from 'react';
 import AuthContext from '../contexts/AuthContext.jsx';

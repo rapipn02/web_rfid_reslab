@@ -1,29 +1,26 @@
-/**
- * API Configuration
- * Production-ready API configuration with environment handling
- */
 
-// Environment configuration
+
+
 const config = {
   development: {
-    baseURL: 'http://localhost:5000/api',
+    baseURL: import.meta.env.VITE_API_URL || '',
     timeout: 10000,
     retries: 3,
     retryDelay: 1000
   },
   production: {
-    baseURL: import.meta.env.VITE_API_URL || 'https://your-production-api.com/api',
+    baseURL: import.meta.env.VITE_API_URL || '',
     timeout: 15000,
     retries: 3,
     retryDelay: 2000
   }
 };
 
-// Get current environment
+
 const environment = import.meta.env.MODE || 'development';
 const currentConfig = config[environment];
 
-// API Configuration
+
 export const API_CONFIG = {
   ...currentConfig,
   headers: {
@@ -33,27 +30,30 @@ export const API_CONFIG = {
   }
 };
 
-// API Endpoints
+
 export const API_ENDPOINTS = {
-  // Dashboard endpoints
+  
   dashboard: {
     getData: '/dashboard',
     getSummary: '/dashboard/summary'
   },
   
-  // Attendance endpoints
+  
   attendance: {
     getAll: '/attendance',
     getById: (id) => `/attendance/${id}`,
     getByMember: (memberId) => `/attendance/member/${memberId}`,
     getToday: '/attendance/today',
+    getTodayWithMembers: '/attendance/today-with-members',
     getStats: '/attendance/stats',
     create: '/attendance',
     update: (id) => `/attendance/${id}`,
-    delete: (id) => `/attendance/${id}`
+    delete: (id) => `/attendance/${id}`,
+    generateAbsent: '/attendance/generate-absent',
+    autoCheckout: '/attendance/auto-checkout'
   },
   
-  // Members endpoints
+  
   members: {
     getAll: '/members',
     getById: (id) => `/members/${id}`,
@@ -62,16 +62,28 @@ export const API_ENDPOINTS = {
     delete: (id) => `/members/${id}`
   },
   
-  // RFID endpoints
+  
   rfid: {
     scan: '/rfid/scan',
+    scanInfo: '/rfid/scan-info',
+    register: '/rfid/register',
+    unregister: '/rfid/unregister',
+    getRegistered: '/rfid/registered',
+    getAll: '/rfid',
     getLatestScans: '/rfid/scans/latest',
     getUnknownScans: '/rfid/scans/unknown',
     getDeviceStatus: (deviceId) => `/rfid/device/${deviceId}/status`,
     deviceHeartbeat: (deviceId) => `/rfid/device/${deviceId}/heartbeat`
   },
+
   
-  // Auth endpoints
+  realtime: {
+    getLatest: '/realtime/latest',
+    getAll: '/realtime',
+    stream: '/realtime/stream'
+  },
+  
+  
   auth: {
     login: '/auth/login',
     logout: '/auth/logout',
@@ -81,17 +93,17 @@ export const API_ENDPOINTS = {
     changePassword: '/auth/change-password'
   },
   
-  // Device endpoints
+  
   device: {
     getStatus: '/device/status',
     updateStatus: '/device/status'
   },
   
-  // Health check
+  
   health: '/health'
 };
 
-// Response status codes
+
 export const HTTP_STATUS = {
   OK: 200,
   CREATED: 201,

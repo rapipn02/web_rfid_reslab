@@ -1,6 +1,4 @@
-/**
- * HTTP Client - Production-ready HTTP client with interceptors and error handling
- */
+
 import { API_CONFIG, HTTP_STATUS } from './config.js';
 
 class HttpClient {
@@ -11,17 +9,11 @@ class HttpClient {
     this.retryDelay = API_CONFIG.retryDelay;
     this.defaultHeaders = API_CONFIG.headers;
     
-    // Debug: Log konfigurasi
-    console.log('🚀 HttpClient initialized:', {
-      baseURL: this.baseURL,
-      timeout: this.timeout,
-      environment: import.meta.env.MODE
-    });
+    
+    console.log('HttpClient initialized:', { baseURL: this.baseURL, timeout: this.timeout, environment: import.meta.env.MODE });
   }
 
-  /**
-   * Get Authorization header dengan token
-   */
+  
   getAuthHeaders() {
     const token = localStorage.getItem('token');
     const headers = { ...this.defaultHeaders };
@@ -33,16 +25,12 @@ class HttpClient {
     return headers;
   }
 
-  /**
-   * Sleep function for retry delays
-   */
+  
   sleep(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
   }
 
-  /**
-   * Create request with timeout
-   */
+  
   async requestWithTimeout(url, options, timeout) {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), timeout);
@@ -63,9 +51,7 @@ class HttpClient {
     }
   }
 
-  /**
-   * Request with retry mechanism
-   */
+  
   async requestWithRetry(url, options, maxRetries = this.retries) {
     let lastError;
     
@@ -73,12 +59,12 @@ class HttpClient {
       try {
         const response = await this.requestWithTimeout(url, options, this.timeout);
         
-        // If response is successful or client error (4xx), return immediately
+        
         if (response.ok || (response.status >= 400 && response.status < 500)) {
           return response;
         }
         
-        // For server errors (5xx), retry
+        
         if (attempt === maxRetries) {
           return response;
         }
@@ -86,12 +72,12 @@ class HttpClient {
       } catch (error) {
         lastError = error;
         
-        // Don't retry on certain errors
+        
         if (error.message === 'Request timeout' && attempt === maxRetries) {
           throw error;
         }
         
-        // Wait before retry
+        
         if (attempt < maxRetries) {
           await this.sleep(this.retryDelay * attempt);
         }
@@ -101,9 +87,7 @@ class HttpClient {
     throw lastError;
   }
 
-  /**
-   * Process response
-   */
+  
   async processResponse(response) {
     const contentType = response.headers.get('content-type');
     
@@ -133,21 +117,19 @@ class HttpClient {
     return response.text();
   }
 
-  /**
-   * Build full URL
-   */
+  
   buildUrl(endpoint, params = null) {
-    // Gabungkan baseURL dengan endpoint
+    
     const fullUrl = this.baseURL + endpoint;
     
-    // Debug: Log URL yang dibuat
-    console.log('🔗 Building URL:', {
+    
+    console.log('Building URL:', {
       endpoint,
       baseURL: this.baseURL,
       fullURL: fullUrl
     });
     
-    // Buat URL object untuk handle query params
+    
     const url = new URL(fullUrl);
     
     if (params) {
@@ -159,9 +141,7 @@ class HttpClient {
     }
 
     return url.toString();
-  }  /**
-   * GET request
-   */
+  }  
   async get(endpoint, params = null, options = {}) {
     const url = this.buildUrl(endpoint, params);
     const requestOptions = {
@@ -181,9 +161,7 @@ class HttpClient {
     }
   }
 
-  /**
-   * POST request
-   */
+  
   async post(endpoint, data = null, options = {}) {
     const url = this.buildUrl(endpoint);
     const requestOptions = {
@@ -204,9 +182,7 @@ class HttpClient {
     }
   }
 
-  /**
-   * PUT request
-   */
+  
   async put(endpoint, data = null, options = {}) {
     const url = this.buildUrl(endpoint);
     const requestOptions = {
@@ -227,9 +203,7 @@ class HttpClient {
     }
   }
 
-  /**
-   * DELETE request
-   */
+  
   async delete(endpoint, options = {}) {
     const url = this.buildUrl(endpoint);
     const requestOptions = {
@@ -249,9 +223,7 @@ class HttpClient {
     }
   }
 
-  /**
-   * PATCH request
-   */
+  
   async patch(endpoint, data = null, options = {}) {
     const url = this.buildUrl(endpoint);
     const requestOptions = {
@@ -273,6 +245,6 @@ class HttpClient {
   }
 }
 
-// Create and export instance
+
 export const httpClient = new HttpClient();
 export default httpClient;

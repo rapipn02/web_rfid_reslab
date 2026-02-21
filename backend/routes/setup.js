@@ -1,21 +1,16 @@
-/**
- * Setup Routes
- * Routes untuk initial setup dan admin pertama
- */
+
 
 const express = require('express');
 const router = express.Router();
 const bcrypt = require('bcryptjs');
 const admin = require('firebase-admin');
 
-/**
- * POST /setup/admin - Buat admin pertama (hanya bisa dijalankan jika belum ada admin)
- */
+
 router.post('/admin', async (req, res) => {
   try {
-    console.log('🔧 Setup admin request:', req.body);
+    console.log('Setup admin request:', req.body);
     
-    // Check apakah sudah ada admin
+    
     const usersRef = admin.firestore().collection('users');
     const adminQuery = await usersRef.where('role', '==', 'admin').get();
     
@@ -28,7 +23,7 @@ router.post('/admin', async (req, res) => {
 
     const { nama, email, password } = req.body;
 
-    // Validasi input
+    
     if (!nama || !email || !password) {
       return res.status(400).json({
         success: false,
@@ -36,7 +31,7 @@ router.post('/admin', async (req, res) => {
       });
     }
 
-    // Validasi email format
+    
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       return res.status(400).json({
@@ -45,7 +40,7 @@ router.post('/admin', async (req, res) => {
       });
     }
 
-    // Validasi password minimal 6 karakter
+    
     if (password.length < 6) {
       return res.status(400).json({
         success: false,
@@ -53,7 +48,7 @@ router.post('/admin', async (req, res) => {
       });
     }
 
-    // Check apakah email sudah ada
+    
     const existingUserQuery = await usersRef.where('email', '==', email).get();
     if (!existingUserQuery.empty) {
       return res.status(400).json({
@@ -62,10 +57,10 @@ router.post('/admin', async (req, res) => {
       });
     }
 
-    // Hash password
+    
     const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Buat admin user
+    
     const adminData = {
       nama: nama.trim(),
       email: email.trim().toLowerCase(),
@@ -78,7 +73,7 @@ router.post('/admin', async (req, res) => {
 
     const docRef = await usersRef.add(adminData);
 
-    console.log('✅ Admin created successfully:', docRef.id);
+    console.log('Admin created successfully:', docRef.id);
 
     res.status(201).json({
       success: true,
@@ -101,9 +96,7 @@ router.post('/admin', async (req, res) => {
   }
 });
 
-/**
- * GET /setup/status - Check status setup
- */
+
 router.get('/status', async (req, res) => {
   try {
     const usersRef = admin.firestore().collection('users');

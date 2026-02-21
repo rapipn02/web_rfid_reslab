@@ -1,21 +1,16 @@
-/**
- * Public Registration Controller (Development Only)
- * Controller untuk registrasi publik - hanya untuk development
- */
+
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const admin = require('firebase-admin');
 
 class PublicAuthController {
-  /**
-   * Public registration - untuk development saja
-   */
+  
   static async publicRegister(req, res) {
     try {
       const { nama, email, password, role = 'user' } = req.body;
 
-      // Validasi input
+      
       if (!nama || !email || !password) {
         return res.status(400).json({
           success: false,
@@ -23,7 +18,7 @@ class PublicAuthController {
         });
       }
 
-      // Validasi email format
+      
       const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
       if (!emailRegex.test(email)) {
         return res.status(400).json({
@@ -32,7 +27,7 @@ class PublicAuthController {
         });
       }
 
-      // Validasi password minimal 6 karakter
+      
       if (password.length < 6) {
         return res.status(400).json({
           success: false,
@@ -40,7 +35,7 @@ class PublicAuthController {
         });
       }
 
-      // Check apakah email sudah ada
+      
       const usersRef = admin.firestore().collection('users');
       const existingUser = await usersRef.where('email', '==', email).get();
 
@@ -51,27 +46,27 @@ class PublicAuthController {
         });
       }
 
-      // Hash password
+      
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      // Data user baru
+      
       const newUser = {
         nama,
         email,
         password: hashedPassword,
-        role: role === 'admin' ? 'user' : role, // Prevent admin registration via public endpoint
+        role: role === 'admin' ? 'user' : role, 
         status: 'active',
         createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        createdBy: null, // Public registration
+        createdBy: null, 
         lastLogin: null,
         lastLoginIP: null
       };
 
-      // Simpan ke Firestore
+      
       const userDoc = await usersRef.add(newUser);
 
-      // Generate JWT token untuk auto-login
+      
       const tokenPayload = {
         id: userDoc.id,
         email: newUser.email,
@@ -111,9 +106,7 @@ class PublicAuthController {
     }
   }
 
-  /**
-   * Check if any admin exists
-   */
+  
   static async checkAdminExists(req, res) {
     try {
       const usersRef = admin.firestore().collection('users');
@@ -123,7 +116,7 @@ class PublicAuthController {
         success: true,
         data: {
           adminExists: !adminQuery.empty,
-          canRegisterPublic: adminQuery.empty // Allow public registration only if no admin exists
+          canRegisterPublic: adminQuery.empty 
         }
       });
 

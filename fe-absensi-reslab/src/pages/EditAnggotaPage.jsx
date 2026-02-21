@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { User, ChevronDown, Scan, X, AlertTriangle, CheckCircle } from 'lucide-react';
-import { MembersApi } from '../api/index.js';
+import { MembersApi, RfidApi } from '../api/index.js';
 import { safeTrim, compareValues } from '../utils/utils';
 
 export default function EditAnggota() {
@@ -19,18 +19,24 @@ export default function EditAnggota() {
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [showAlert, setShowAlert] = useState({ show: false, message: '', type: '' });
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanCountdown, setScanCountdown] = useState(0);
+    const [lastScanCheck, setLastScanCheck] = useState(null);
+    
+    const scanIntervalRef = useRef(null);
+    const scanTimeoutRef = useRef(null);
 
     useEffect(() => {
         const loadMember = async () => {
             try {
-                console.log('📝 Loading member for edit:', id);
+                console.log('Loading member for edit:', id);
                 setIsLoading(true);
                 
                 const response = await MembersApi.getById(id);
-                console.log('📝 Member data response:', response);
+                console.log('Member data response:', response);
                 
                 if (response.success && response.data) {
-                    // Ensure all fields are strings or arrays
+                    
                     const safeData = {
                         nama: response.data.nama || '',
                         nim: response.data.nim || '',
@@ -44,7 +50,7 @@ export default function EditAnggota() {
                     setTimeout(() => navigate('/anggota'), 2000);
                 }
             } catch (error) {
-                console.error('❌ Error loading member:', error);
+                console.error('Error loading member:', error);
                 showNotification("Gagal memuat data anggota!", 'error');
                 setTimeout(() => navigate('/anggota'), 2000);
             } finally {
@@ -67,7 +73,7 @@ export default function EditAnggota() {
     const validateForm = () => {
         const newErrors = {};
 
-        // Validasi nama
+        
         const namaValue = safeTrim(formData.nama);
         if (!namaValue) {
             newErrors.nama = 'Nama wajib diisi';
@@ -75,7 +81,7 @@ export default function EditAnggota() {
             newErrors.nama = 'Nama minimal 2 karakter';
         }
 
-        // Validasi NIM
+        
         const nimValue = safeTrim(formData.nim);
         if (!nimValue) {
             newErrors.nim = 'NIM wajib diisi';
@@ -84,18 +90,18 @@ export default function EditAnggota() {
         } else if (nimValue.length < 6) {
             newErrors.nim = 'NIM minimal 6 digit';
         }
-        // Note: Duplicate NIM check will be handled by server-side validation
+        
 
-        // Validasi RFID
+        
         const rfidValue = safeTrim(formData.idRfid);
         if (!rfidValue) {
             newErrors.idRfid = 'ID RFID wajib diisi';
         } else if (rfidValue.length < 4) {
             newErrors.idRfid = 'ID RFID minimal 4 karakter';
         }
-        // Note: Duplicate RFID check will be handled by server-side validation
+        
 
-        // Validasi Hari Piket
+        
         if (!formData.hariPiket || formData.hariPiket.length === 0) {
             newErrors.hariPiket = 'Minimal pilih satu hari piket';
         }
@@ -111,7 +117,7 @@ export default function EditAnggota() {
             [name]: value
         }));
 
-        // Clear error untuk field yang sedang diubah
+        
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -127,10 +133,10 @@ export default function EditAnggota() {
             
             let newHariPiket;
             if (isSelected) {
-                // Remove hari if already selected
+                
                 newHariPiket = currentHariPiket.filter(h => h !== hari);
             } else {
-                // Add hari if not selected
+                
                 newHariPiket = [...currentHariPiket, hari];
             }
             
@@ -140,7 +146,7 @@ export default function EditAnggota() {
             };
         });
 
-        // Clear error untuk field hari piket
+        
         if (errors.hariPiket) {
             setErrors(prev => ({
                 ...prev,
@@ -149,40 +155,119 @@ export default function EditAnggota() {
         }
     };
 
+    
     const handleScan = async () => {
-        setIsLoading(true);
-        
         try {
-            // Simulate scanning delay
-            await new Promise(resolve => setTimeout(resolve, 1500));
+            console.log('Starting realtime RFID scan...');
             
-            // Generate new RFID ID (simplified version)
-            const newRfid = Math.random().toString(36).substr(2, 8).toUpperCase();
+            setIsScanning(true);
+            setScanCountdown(30);
+            setLastScanCheck(new Date());
+
+            showNotification('🔄 Scan RFID dimulai! Tap kartu dalam 30 detik...', 'info');
+
             
-            setFormData(prev => ({
-                ...prev,
-                idRfid: newRfid
-            }));
+            let timeLeft = 30;
+            const countdownInterval = setInterval(() => {
+                timeLeft -= 1;
+                setScanCountdown(timeLeft);
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
             
-            // Clear RFID error jika ada
-            if (errors.idRfid) {
-                setErrors(prev => ({
-                    ...prev,
-                    idRfid: ''
-                }));
-            }
+            const scanCheckInterval = setInterval(async () => {
+                await checkForNewRealtimeScans();
+            }, 500);
+
+            scanIntervalRef.current = scanCheckInterval;
+
             
-            showNotification('RFID berhasil di-scan!', 'success');
-        } catch (err) {
-            console.error('❌ Error scanning RFID:', err);
-            showNotification('Gagal scan RFID', 'error');
-        } finally {
-            setIsLoading(false);
+            const stopTimeout = setTimeout(() => {
+                setIsScanning(false);
+                setScanCountdown(0);
+                clearInterval(countdownInterval);
+                clearInterval(scanCheckInterval);
+                showNotification('⏰ Scan timeout. Coba lagi jika diperlukan.', 'warning');
+            }, 30000);
+
+            scanTimeoutRef.current = stopTimeout;
+
+        } catch (error) {
+            console.error('Error starting realtime scan:', error);
+            setIsScanning(false);
+            setScanCountdown(0);
+            showNotification(' Error memulai scan. Coba lagi.', 'error');
         }
     };
 
+    
+    const checkForNewRealtimeScans = async () => {
+        try {
+            
+            const response = await RfidApi.getLatestScans();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                const latestScan = response.data[0]; 
+                
+                
+                if (latestScan.cardId && latestScan.cardId !== formData.idRfid) {
+                    setFormData(prev => ({
+                        ...prev,
+                        idRfid: latestScan.cardId.toUpperCase()
+                    }));
+                    
+                    
+                    setIsScanning(false);
+                    setScanCountdown(0);
+                    
+                    if (scanIntervalRef.current) {
+                        clearInterval(scanIntervalRef.current);
+                    }
+                    if (scanTimeoutRef.current) {
+                        clearTimeout(scanTimeoutRef.current);
+                    }
+                    
+                    
+                    if (errors.idRfid) {
+                        setErrors(prev => ({
+                            ...prev,
+                            idRfid: ''
+                        }));
+                    }
+                    
+                    
+                    if (latestScan.scanType === 'unknown' || latestScan.processed === false) {
+                        showNotification(`🆔 RFID terdeteksi: ${latestScan.cardId} - Kartu baru`, 'success');
+                    } else {
+                        showNotification(`✅ RFID berhasil terdeteksi: ${latestScan.cardId}`, 'success');
+                    }
+                    
+                    
+                    setLastScanCheck(new Date());
+                }
+            }
+        } catch (error) {
+            console.error('Error checking realtime scans:', error);
+        }
+    };
+
+    
+    useEffect(() => {
+        return () => {
+            if (scanIntervalRef.current) {
+                clearInterval(scanIntervalRef.current);
+            }
+            if (scanTimeoutRef.current) {
+                clearTimeout(scanTimeoutRef.current);
+            }
+        };
+    }, []);
+
     const handleCancel = () => {
-        // Reset ke data original
+        
         setFormData(originalData);
         setErrors({});
         navigate('/anggota');
@@ -194,7 +279,7 @@ export default function EditAnggota() {
             return;
         }
 
-        // Check if data has changed
+        
         const hasChanges = Object.keys(formData).some(key => {
             return !compareValues(formData[key], originalData[key]);
         });
@@ -226,7 +311,7 @@ export default function EditAnggota() {
                 showNotification(response.message || 'Gagal memperbarui data anggota', 'error');
             }
         } catch (error) {
-            console.error('❌ Error updating member:', error);
+            console.error('Error updating member:', error);
             showNotification('Gagal memperbarui data anggota', 'error');
         } finally {
             setIsLoading(false);
@@ -239,7 +324,7 @@ export default function EditAnggota() {
 
     return (
         <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
-            {/* Alert Notification */}
+            {}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 
@@ -257,7 +342,7 @@ export default function EditAnggota() {
                 </div>
             )}
 
-            {/* Header */}
+            {}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
@@ -272,9 +357,9 @@ export default function EditAnggota() {
                 </div>
             </header>
 
-            {/* Form Card */}
+            {}
             <section className="bg-white rounded-xl p-6 shadow-md max-w-2xl w-full mx-auto">
-                {/* Change Indicator */}
+                {}
                 {hasChanges && (
                     <div className="mb-6 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                         <div className="flex items-center">
@@ -287,7 +372,7 @@ export default function EditAnggota() {
                 )}
 
                 <div className="space-y-6">
-                    {/* Nama */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             Nama <span className="text-red-500">*</span>
@@ -309,7 +394,7 @@ export default function EditAnggota() {
                         </div>
                     </div>
 
-                    {/* NIM */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             NIM <span className="text-red-500">*</span>
@@ -331,7 +416,7 @@ export default function EditAnggota() {
                         </div>
                     </div>
 
-                    {/* RFID */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             ID RFID <span className="text-red-500">*</span>
@@ -350,23 +435,50 @@ export default function EditAnggota() {
                                 />
                                 <button
                                     onClick={handleScan}
-                                    disabled={isLoading}
-                                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors font-medium text-sm"
+                                    disabled={isScanning || isLoading}
+                                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors font-medium text-sm ${
+                                        isScanning 
+                                            ? 'bg-blue-500 text-white cursor-wait' 
+                                            : 'bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white'
+                                    }`}
                                 >
-                                    <Scan className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                                    <span>{isLoading ? 'Scanning...' : 'Scan'}</span>
+                                    <Scan className={`w-4 h-4 ${isScanning ? 'animate-pulse' : ''}`} />
+                                    <span>
+                                        {isScanning 
+                                            ? `Scanning... (${scanCountdown}s)` 
+                                            : 'Scan RFID'}
+                                    </span>
                                 </button>
                             </div>
                             {errors.idRfid && (
                                 <p className="text-red-500 text-xs mt-1">{errors.idRfid}</p>
                             )}
-                            <p className="text-gray-500 text-xs mt-1">
-                                ID RFID harus unik untuk setiap anggota
-                            </p>
+                            {isScanning && (
+                                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <div className="flex items-center">
+                                        <div className="animate-spin mr-2">
+                                            <Scan className="w-4 h-4 text-blue-600" />
+                                        </div>
+                                        <span className="text-sm text-blue-800 font-medium">
+                                            Menunggu kartu RFID... Tap kartu ke reader ({scanCountdown} detik)
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
+                            {!isScanning && lastScanCheck && (
+                                <p className="text-gray-500 text-xs mt-1">
+                                    Klik "Scan RFID" untuk scan kartu baru dari ESP32
+                                </p>
+                            )}
+                            {!isScanning && !lastScanCheck && (
+                                <p className="text-gray-500 text-xs mt-1">
+                                    ID RFID harus unik untuk setiap anggota
+                                </p>
+                            )}
                         </div>
                     </div>
 
-                    {/* Hari Piket */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             Hari Piket <span className="text-red-500">*</span>
@@ -376,7 +488,7 @@ export default function EditAnggota() {
                                 errors.hariPiket ? 'border-red-500' : 'border-gray-300'
                             }`}>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map(hari => (
+                                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'].map(hari => (
                                         <label key={hari} className="flex items-center space-x-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -399,7 +511,7 @@ export default function EditAnggota() {
                     </div>
                 </div>
 
-                {/* Action Buttons */}
+                {}
                 <div className="flex justify-end gap-3 mt-8">
                     <button
                         onClick={handleCancel}

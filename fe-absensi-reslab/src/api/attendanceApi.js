@@ -1,24 +1,19 @@
-/**
- * Attendance API Service
- * Service untuk handle attendance/absensi dengan backend
- */
+
 
 import httpClient from './httpClient.js';
 import { API_ENDPOINTS } from './config.js';
 
 class AttendanceApi {
-  /**
-   * Get all attendance records
-   */
+  
   static async getAll() {
     try {
-      console.log('📋 AttendanceApi.getAll');
+      console.log('AttendanceApi.getAll');
       
       const response = await httpClient.get(API_ENDPOINTS.attendance.getAll);
       
-      console.log('📋 AttendanceApi.getAll response:', response);
+      console.log('AttendanceApi.getAll response:', response);
       
-      // Backend returns { attendance, count }, we need attendance array
+      
       const attendanceData = response.data?.attendance || response.attendance || response.data || [];
       
       return {
@@ -35,12 +30,10 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Get attendance by ID
-   */
+  
   static async getById(id) {
     try {
-      console.log('📋 AttendanceApi.getById:', id);
+      console.log('AttendanceApi.getById:', id);
       
       const response = await httpClient.get(API_ENDPOINTS.attendance.getById(id));
       
@@ -58,12 +51,10 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Get attendance by member ID
-   */
+  
   static async getByMember(memberId) {
     try {
-      console.log('📋 AttendanceApi.getByMember:', memberId);
+      console.log('AttendanceApi.getByMember:', memberId);
       
       const response = await httpClient.get(API_ENDPOINTS.attendance.getByMember(memberId));
       
@@ -81,18 +72,16 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Get today's attendance
-   */
+  
   static async getToday() {
     try {
-      console.log('📋 AttendanceApi.getToday');
+      console.log('AttendanceApi.getToday');
       
       const response = await httpClient.get(API_ENDPOINTS.attendance.getToday);
       
-      console.log('📋 AttendanceApi.getToday response:', response);
+      console.log('AttendanceApi.getToday response:', response);
       
-      // Backend returns { date, attendance, stats }, we need attendance array
+      
       const attendanceData = response.data?.attendance || response.attendance || response.data || [];
       
       return {
@@ -109,12 +98,36 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Get attendance statistics
-   */
+  
+  static async getTodayWithMembers() {
+    try {
+      console.log('AttendanceApi.getTodayWithMembers - Real-time');
+      
+      const response = await httpClient.get(API_ENDPOINTS.attendance.getTodayWithMembers || '/attendance/today-with-members');
+      
+      console.log('AttendanceApi.getTodayWithMembers response:', response);
+      
+      
+      const attendanceData = response.data?.attendance || response.attendance || response.data || [];
+      
+      return {
+        success: true,
+        data: attendanceData
+      };
+    } catch (error) {
+      console.error('AttendanceApi.getTodayWithMembers error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal mengambil data absensi real-time',
+        data: []
+      };
+    }
+  }
+
+  
   static async getStats() {
     try {
-      console.log('📊 AttendanceApi.getStats');
+      console.log('AttendanceApi.getStats');
       
       const response = await httpClient.get(API_ENDPOINTS.attendance.getStats);
       
@@ -142,12 +155,10 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Create new attendance record
-   */
+  
   static async create(attendanceData) {
     try {
-      console.log('📋 AttendanceApi.create:', attendanceData);
+      console.log('AttendanceApi.create:', attendanceData);
       
       const response = await httpClient.post(API_ENDPOINTS.attendance.create, attendanceData);
       
@@ -166,12 +177,10 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Update attendance record
-   */
+  
   static async update(id, attendanceData) {
     try {
-      console.log('📋 AttendanceApi.update:', id, attendanceData);
+      console.log('AttendanceApi.update:', id, attendanceData);
       
       const response = await httpClient.put(API_ENDPOINTS.attendance.update(id), attendanceData);
       
@@ -190,12 +199,10 @@ class AttendanceApi {
     }
   }
 
-  /**
-   * Delete attendance record
-   */
+  
   static async delete(id) {
     try {
-      console.log('📋 AttendanceApi.delete:', id);
+      console.log('AttendanceApi.delete:', id);
       
       await httpClient.delete(API_ENDPOINTS.attendance.delete(id));
       
@@ -208,6 +215,30 @@ class AttendanceApi {
       return {
         success: false,
         message: error.message || 'Gagal menghapus absensi'
+      };
+    }
+  }
+
+  
+  static async generateAbsentRecords() {
+    try {
+      console.log('AttendanceApi.generateAbsentRecords');
+      
+      const response = await httpClient.post('/attendance/generate-absent');
+      
+      console.log('AttendanceApi.generateAbsentRecords response:', response);
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: response.message || 'Successfully generated absent records'
+      };
+    } catch (error) {
+      console.error('AttendanceApi.generateAbsentRecords error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal generate absent records',
+        data: null
       };
     }
   }

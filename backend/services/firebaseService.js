@@ -1,11 +1,9 @@
 const { adminDb, adminRtdb } = require('../config/firebase');
 
-/**
- * Firebase Service Layer
- */
+
 class FirebaseService {
     
-    // Firestore operations
+    
     static async addDocument(collection, data) {
         try {
             const docRef = await adminDb.collection(collection).add({
@@ -23,7 +21,7 @@ class FirebaseService {
         try {
             let query = adminDb.collection(collection);
             
-            // Apply conditions
+            
             conditions.forEach(condition => {
                 query = query.where(condition.field, condition.operator, condition.value);
             });
@@ -88,7 +86,7 @@ class FirebaseService {
         }
     }
 
-    // Realtime Database operations
+    
     static async setRealtimeData(path, data) {
         try {
             await adminRtdb.ref(path).set({
@@ -122,7 +120,7 @@ class FirebaseService {
         }
     }
 
-    // Helper methods
+    
     static async checkDocumentExists(collection, field, value, excludeId = null) {
         try {
             const conditions = [{ field, operator: '==', value }];
@@ -135,6 +133,29 @@ class FirebaseService {
             return documents.length > 0;
         } catch (error) {
             throw new Error(`Failed to check document existence: ${error.message}`);
+        }
+    }
+
+    
+    static async getAttendanceByMemberAndDate(memberId, date) {
+        try {
+            const conditions = [
+                { field: 'memberId', operator: '==', value: memberId },
+                { field: 'date', operator: '==', value: date }
+            ];
+            const attendanceRecords = await this.getDocuments('attendance', conditions);
+            return attendanceRecords;
+        } catch (error) {
+            throw new Error(`Failed to get attendance by member and date: ${error.message}`);
+        }
+    }
+
+    static async getTodayAttendanceByMember(memberId) {
+        try {
+            const today = new Date().toISOString().split('T')[0]; 
+            return await this.getAttendanceByMemberAndDate(memberId, today);
+        } catch (error) {
+            throw new Error(`Failed to get today's attendance: ${error.message}`);
         }
     }
 }

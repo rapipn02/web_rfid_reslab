@@ -1,4 +1,4 @@
-// Date formatting utilities
+
 export const formatDate = (dateString) => {
     const date = new Date(dateString);
     return date.toLocaleDateString('id-ID', {
@@ -25,7 +25,7 @@ export const getCurrentTime = () => {
     });
 };
 
-// Validation utilities
+
 export const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     return re.test(email);
@@ -43,7 +43,7 @@ export const validateName = (name) => {
     return name.trim().length >= 2;
 };
 
-// Data processing utilities
+
 export const sortByDate = (data, ascending = false) => {
     return [...data].sort((a, b) => {
         const dateA = new Date(a.tanggal);
@@ -68,7 +68,7 @@ export const calculateAttendancePercentage = (present, total) => {
     return ((present / total) * 100).toFixed(1);
 };
 
-// Export utilities
+
 export const downloadFile = (content, filename, type = 'text/plain') => {
     const blob = new Blob([content], { type: `${type};charset=utf-8;` });
     const link = document.createElement("a");
@@ -82,7 +82,7 @@ export const downloadFile = (content, filename, type = 'text/plain') => {
     URL.revokeObjectURL(url);
 };
 
-// Search utilities
+
 export const searchInMultipleFields = (item, searchTerm, fields) => {
     const term = searchTerm.toLowerCase();
     return fields.some(field => {
@@ -91,7 +91,7 @@ export const searchInMultipleFields = (item, searchTerm, fields) => {
     });
 };
 
-// Pagination utilities
+
 export const getPaginationInfo = (currentPage, totalItems, itemsPerPage) => {
     const totalPages = Math.ceil(totalItems / itemsPerPage);
     const startIndex = (currentPage - 1) * itemsPerPage;
@@ -106,7 +106,7 @@ export const getPaginationInfo = (currentPage, totalItems, itemsPerPage) => {
     };
 };
 
-// Generate pagination range for display
+
 export const getPaginationRange = (currentPage, totalPages, maxVisible = 5) => {
     if (totalPages <= maxVisible) {
         return Array.from({ length: totalPages }, (_, i) => i + 1);
@@ -123,7 +123,7 @@ export const getPaginationRange = (currentPage, totalPages, maxVisible = 5) => {
     return Array.from({ length: end - start + 1 }, (_, i) => start + i);
 };
 
-// RFID utilities
+
 export const generateRFIDId = (prefix = 'RF') => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let result = prefix;
@@ -137,7 +137,7 @@ export const formatRFID = (rfid) => {
     return rfid.toUpperCase().trim();
 };
 
-// Status utilities
+
 export const getStatusBadgeClass = (status) => {
     const baseClasses = 'py-1 px-3 rounded-full text-xs font-semibold';
     
@@ -153,7 +153,7 @@ export const getStatusBadgeClass = (status) => {
     }
 };
 
-// Date range utilities
+
 export const getDateRange = (startDate, endDate) => {
     const dates = [];
     const start = new Date(startDate);
@@ -166,7 +166,7 @@ export const getDateRange = (startDate, endDate) => {
     return dates;
 };
 
-// Local storage utilities (for future use outside Claude environment)
+
 export const saveToStorage = (key, data) => {
     try {
         localStorage.setItem(key, JSON.stringify(data));
@@ -187,7 +187,7 @@ export const loadFromStorage = (key, defaultValue = null) => {
     }
 };
 
-// Array utilities
+
 export const removeDuplicates = (array, key) => {
     return array.filter((item, index, self) => 
         index === self.findIndex(t => t[key] === item[key])
@@ -202,7 +202,7 @@ export const sortAlphabetically = (array, key, ascending = true) => {
     });
 };
 
-// Safe string utilities
+
 export const safeString = (value) => {
     return typeof value === 'string' ? value : (value || '').toString();
 };
@@ -215,7 +215,7 @@ export const compareValues = (value1, value2) => {
     return safeTrim(value1) === safeTrim(value2);
 };
 
-// Form utilities
+
 export const trimFormData = (formData) => {
     const trimmed = {};
     Object.keys(formData).forEach(key => {
@@ -228,7 +228,7 @@ export const hasFormErrors = (errors) => {
     return Object.values(errors).some(error => error && error.length > 0);
 };
 
-// Statistics utilities
+
 export const calculateStats = (data, statusField = 'status') => {
     const total = data.length;
     const hadir = data.filter(item => item[statusField] === 'Hadir').length;
@@ -243,7 +243,7 @@ export const calculateStats = (data, statusField = 'status') => {
     };
 };
 
-// Debounce utility for search
+
 export const debounce = (func, wait) => {
     let timeout;
     return function executedFunction(...args) {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Plus, Edit, Trash2, ChevronLeft, ChevronRight, User, ChevronDown, AlertTriangle, CheckCircle } from 'lucide-react';
 import { MembersApi } from '../api/index.js';
+import realtimeService from '../services/realtimeService.js';
 
 export default function AnggotaPage() {
     const navigate = useNavigate();
@@ -13,23 +14,72 @@ export default function AnggotaPage() {
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [memberToDelete, setMemberToDelete] = useState(null);
     const [showAlert, setShowAlert] = useState({ show: false, message: '', type: '' });
+    const [connectionStatus, setConnectionStatus] = useState('disconnected');
 
     const itemsPerPage = 5;
+
+    
+    useEffect(() => {
+        
+        realtimeService.connect();
+        setConnectionStatus(realtimeService.getConnectionStatus());
+
+        
+        const unsubscribeMemberAdded = realtimeService.subscribe('member_added', (data) => {
+            console.log('New member added:', data);
+            setMembers(prev => [...prev, data]);
+            showNotification('Member baru ditambahkan: ' + data.nama, 'success');
+        });
+
+        const unsubscribeMemberUpdated = realtimeService.subscribe('member_updated', (data) => {
+            console.log('Member updated:', data);
+            setMembers(prev => prev.map(member => 
+                member.id === data.id ? data : member
+            ));
+            
+            
+            if (data.status === 'deleted') {
+                showNotification('Member dihapus: ' + data.nama, 'success');
+                setMembers(prev => prev.filter(member => member.id !== data.id));
+            } else {
+                showNotification('Member diperbarui: ' + data.nama, 'success');
+            }
+        });
+
+        const unsubscribeMemberDeleted = realtimeService.subscribe('member_deleted', (data) => {
+            console.log('Member deleted:', data);
+            setMembers(prev => prev.filter(member => member.id !== data.id));
+            showNotification('Member dihapus: ' + data.nama, 'success');
+        });
+
+        
+        const statusInterval = setInterval(() => {
+            setConnectionStatus(realtimeService.getConnectionStatus());
+        }, 5000);
+
+        
+        return () => {
+            unsubscribeMemberAdded();
+            unsubscribeMemberUpdated();
+            unsubscribeMemberDeleted();
+            clearInterval(statusInterval);
+        };
+    }, []);
 
     useEffect(() => {
         const loadMembers = async () => {
             try {
-                console.log('🔄 Loading members from API...');
+                console.log('Loading members from API...');
                 setLoading(true);
                 
                 const response = await MembersApi.getAll();
-                console.log('📋 Members API Response:', response);
+                console.log('Members API Response:', response);
                 
                 if (response.success) {
                     setMembers(response.data);
-                    console.log('✅ Members loaded successfully:', response.data.length, 'items');
+                    console.log('Members loaded successfully:', response.data.length, 'items');
                 } else {
-                    console.error('❌ Failed to load members:', response.message);
+                    console.error('Failed to load members:', response.message);
                     setShowAlert({
                         show: true,
                         message: response.message || 'Gagal memuat data anggota',
@@ -37,7 +87,7 @@ export default function AnggotaPage() {
                     });
                 }
             } catch (error) {
-                console.error('❌ Error loading members:', error);
+                console.error('Error loading members:', error);
                 setShowAlert({
                     show: true,
                     message: 'Terjadi kesalahan saat memuat data anggota',
@@ -51,16 +101,16 @@ export default function AnggotaPage() {
         loadMembers();
     }, []);
 
-    // Filter data berdasarkan search term
+    
     const filteredMembers = members.filter(member => {
         const searchLower = searchTerm.toLowerCase();
         
-        // Search in basic fields
+        
         const basicSearch = member.nama.toLowerCase().includes(searchLower) ||
                            member.nim.includes(searchTerm) ||
                            member.idRfid.toLowerCase().includes(searchLower);
         
-        // Search in hari piket (support both array and string)
+        
         let hariPiketSearch = false;
         if (member.hariPiket) {
             if (Array.isArray(member.hariPiket)) {
@@ -98,18 +148,18 @@ export default function AnggotaPage() {
     const handleDeleteConfirm = async () => {
         if (memberToDelete) {
             try {
-                console.log('🗑️ Deleting member:', memberToDelete.id);
+                console.log('Deleting member:', memberToDelete.id);
                 
                 const response = await MembersApi.delete(memberToDelete.id);
                 
                 if (response.success) {
                     showNotification(`Anggota "${memberToDelete.nama}" berhasil dihapus`, 'success');
                     
-                    // Remove member from local state
+                    
                     const updatedMembers = members.filter(m => m.id !== memberToDelete.id);
                     setMembers(updatedMembers);
                     
-                    // Adjust current page if needed
+                    
                     const newTotalItems = updatedMembers.length;
                     const newTotalPages = Math.ceil(newTotalItems / itemsPerPage);
                     if (currentPage > newTotalPages && newTotalPages > 0) {
@@ -119,7 +169,7 @@ export default function AnggotaPage() {
                     showNotification(response.message || 'Gagal menghapus anggota', 'error');
                 }
             } catch (error) {
-                console.error('❌ Error deleting member:', error);
+                console.error('Error deleting member:', error);
                 showNotification('Terjadi kesalahan saat menghapus anggota', 'error');
             }
         }
@@ -145,12 +195,12 @@ export default function AnggotaPage() {
 
     const handleSearchChange = (e) => {
         setSearchTerm(e.target.value);
-        setCurrentPage(1); // Reset halaman ke 1 saat mencari
+        setCurrentPage(1); 
     };
 
     return (
         <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
-            {/* Alert Notification */}
+            {}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 
@@ -168,7 +218,13 @@ export default function AnggotaPage() {
                 </div>
             )}
 
-            {/* Delete Confirmation Modal */}
+           
+                
+                   
+                
+           
+
+            {}
             {showDeleteModal && (
                 <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
                     <div className="bg-white rounded-lg p-6 max-w-md w-full">
@@ -198,7 +254,7 @@ export default function AnggotaPage() {
                 </div>
             )}
 
-            {/* Header */}
+            {}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
@@ -213,7 +269,7 @@ export default function AnggotaPage() {
                 </div>
             </header>
 
-            {/* Search + Add */}
+            {}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
                 <div className="relative w-full sm:w-auto">
                     <Search size={20} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
@@ -234,7 +290,7 @@ export default function AnggotaPage() {
                 </button>
             </div>
 
-            {/* Summary Info */}
+            {}
             <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
                 <div className="flex items-center justify-between">
                     <div className="text-sm text-blue-800">
@@ -246,7 +302,7 @@ export default function AnggotaPage() {
                 </div>
             </div>
 
-            {/* Table */}
+            {}
             <section className="bg-white rounded-xl p-6 shadow-md">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-gray-200 rounded-lg">
@@ -333,7 +389,7 @@ export default function AnggotaPage() {
                     </table>
                 </div>
 
-                {/* Pagination */}
+                {}
                 {totalPages > 1 && (
                     <div className="flex justify-between items-center mt-4">
                         <div className="text-sm text-gray-500">

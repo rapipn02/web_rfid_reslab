@@ -1,38 +1,33 @@
-/**
- * Members API Service
- * Service untuk handle members/anggota dengan backend
- */
+
 
 import httpClient from './httpClient.js';
 import { API_ENDPOINTS } from './config.js';
 
 class MembersApi {
-  /**
-   * Get all members
-   */
+  
   static async getAll() {
     try {
-      console.log('👥 MembersApi.getAll');
-      console.log('👥 Endpoint URL:', API_ENDPOINTS.members.getAll);
+      console.log('MembersApi.getAll');
+      console.log('Endpoint URL:', API_ENDPOINTS.members.getAll);
       
       const response = await httpClient.get(API_ENDPOINTS.members.getAll);
       
-      console.log('👥 MembersApi.getAll response:', response);
+      console.log('MembersApi.getAll response:', response);
       
-      // Handle different response formats
+      
       let members = [];
       if (response.data && response.data.members) {
-        // Backend returns { data: { members: [...] } }
+        
         members = response.data.members;
       } else if (response.data && Array.isArray(response.data)) {
-        // Backend returns { data: [...] }
+        
         members = response.data;
       } else if (Array.isArray(response)) {
-        // Direct array response
+        
         members = response;
       }
       
-      console.log('👥 Processed members data:', members);
+      console.log('Processed members data:', members);
       
       return {
         success: true,
@@ -48,12 +43,10 @@ class MembersApi {
     }
   }
 
-  /**
-   * Get member by ID
-   */
+  
   static async getById(id) {
     try {
-      console.log('👥 MembersApi.getById:', id);
+      console.log('MembersApi.getById:', id);
       
       const response = await httpClient.get(API_ENDPOINTS.members.getById(id));
       
@@ -71,12 +64,10 @@ class MembersApi {
     }
   }
 
-  /**
-   * Create new member
-   */
+  
   static async create(memberData) {
     try {
-      console.log('👥 MembersApi.create:', memberData);
+      console.log('MembersApi.create:', memberData);
       
       const response = await httpClient.post(API_ENDPOINTS.members.create, memberData);
       
@@ -95,12 +86,10 @@ class MembersApi {
     }
   }
 
-  /**
-   * Update member
-   */
+  
   static async update(id, memberData) {
     try {
-      console.log('👥 MembersApi.update:', id, memberData);
+      console.log('MembersApi.update:', id, memberData);
       
       const response = await httpClient.put(API_ENDPOINTS.members.update(id), memberData);
       
@@ -119,12 +108,10 @@ class MembersApi {
     }
   }
 
-  /**
-   * Delete member
-   */
+  
   static async delete(id) {
     try {
-      console.log('👥 MembersApi.delete:', id);
+      console.log('MembersApi.delete:', id);
       
       await httpClient.delete(API_ENDPOINTS.members.delete(id));
       
@@ -137,6 +124,50 @@ class MembersApi {
       return {
         success: false,
         message: error.message || 'Gagal menghapus anggota'
+      };
+    }
+  }
+
+  
+  static async assignRfidCard(memberId, cardId) {
+    try {
+      console.log('MembersApi.assignRfidCard:', { memberId, cardId });
+      
+      const response = await httpClient.put(`/members/${memberId}/rfid`, { rfidCard: cardId });
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: 'RFID card berhasil didaftarkan'
+      };
+    } catch (error) {
+      console.error('MembersApi.assignRfidCard error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal mendaftarkan RFID card',
+        data: null
+      };
+    }
+  }
+
+  
+  static async removeRfidCard(memberId) {
+    try {
+      console.log('MembersApi.removeRfidCard:', memberId);
+      
+      const response = await httpClient.delete(`/members/${memberId}/rfid`);
+      
+      return {
+        success: true,
+        data: response.data || response,
+        message: 'RFID card berhasil dihapus'
+      };
+    } catch (error) {
+      console.error('MembersApi.removeRfidCard error:', error);
+      return {
+        success: false,
+        message: error.message || 'Gagal menghapus RFID card',
+        data: null
       };
     }
   }

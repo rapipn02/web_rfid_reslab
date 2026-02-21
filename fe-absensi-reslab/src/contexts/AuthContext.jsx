@@ -1,7 +1,4 @@
-/**
- * Authentication Context
- * Context untuk manage authentication state di seluruh aplikasi
- */
+
 
 import React, { createContext, useState, useEffect } from 'react';
 import { AuthApi } from '../api/index.js';
@@ -13,21 +10,21 @@ export const AuthProvider = ({ children }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
 
-  // Check authentication status on mount
+  
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
         if (AuthApi.isAuthenticated()) {
           const currentUser = AuthApi.getCurrentUser();
           
-          // Verify token with backend
+          
           const result = await AuthApi.verifyToken();
           
           if (result.success) {
             setUser(currentUser);
             setIsAuthenticated(true);
           } else {
-            // Token tidak valid, clear auth state
+            
             clearAuthState();
           }
         } else {
@@ -66,25 +63,73 @@ export const AuthProvider = ({ children }) => {
 
   const logout = async () => {
     try {
-      await AuthApi.logout();
+      setIsLoading(true);
+      
+      if (AuthApi.logout) {
+        await AuthApi.logout();
+      }
     } catch (error) {
       console.error('Logout error:', error);
     } finally {
+      
       clearAuthState();
+      setIsLoading(false);
+      
+      
+      window.location.href = '/login';
     }
   };
 
   const clearAuthState = () => {
     setUser(null);
     setIsAuthenticated(false);
+    
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
+    sessionStorage.removeItem('token');
+    sessionStorage.removeItem('user');
+  };
+
+  const checkAuthStatus = async () => {
+    try {
+      if (AuthApi.isAuthenticated()) {
+        const currentUser = AuthApi.getCurrentUser();
+        
+        
+        const result = await AuthApi.verifyToken();
+        
+        if (result.success) {
+          setUser(currentUser);
+          setIsAuthenticated(true);
+          return true;
+        } else {
+          
+          clearAuthState();
+          return false;
+        }
+      } else {
+        clearAuthState();
+        return false;
+      }
+    } catch (error) {
+      console.error('Auth check error:', error);
+      clearAuthState();
+      return false;
+    }
   };
 
   const value = {
     user,
     isAuthenticated,
+    loading: isLoading,  
     isLoading,
     login,
-    logout
+    logout,
+    checkAuthStatus, 
+    
+    hasRole: (role) => user?.role === role,
+    isAdmin: () => user?.role === 'admin',
+    isMember: () => user?.role === 'member'
   };
 
   return (

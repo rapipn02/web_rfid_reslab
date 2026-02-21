@@ -1,11 +1,6 @@
-/**
- * Error Handler Utilities
- * Utilities untuk handle API errors
- */
 
-/**
- * Custom API Error class
- */
+
+
 export class ApiError extends Error {
   constructor(message, status, data = null) {
     super(message);
@@ -15,9 +10,7 @@ export class ApiError extends Error {
   }
 }
 
-/**
- * Network Error class
- */
+
 export class NetworkError extends Error {
   constructor(message = 'Network error occurred') {
     super(message);
@@ -25,9 +18,7 @@ export class NetworkError extends Error {
   }
 }
 
-/**
- * Validation Error class
- */
+
 export class ValidationError extends Error {
   constructor(message, errors = []) {
     super(message);
@@ -36,13 +27,11 @@ export class ValidationError extends Error {
   }
 }
 
-/**
- * Handle API errors in a standardized way
- */
+
 export const handleApiError = (error) => {
   console.error('API Error:', error);
 
-  // Network error (fetch failed)
+  
   if (error.name === 'TypeError' && error.message.includes('fetch')) {
     return {
       success: false,
@@ -51,7 +40,7 @@ export const handleApiError = (error) => {
     };
   }
 
-  // API Error dengan response dari server
+  
   if (error.status) {
     switch (error.status) {
       case 400:
@@ -99,7 +88,7 @@ export const handleApiError = (error) => {
     }
   }
 
-  // Generic error
+  
   return {
     success: false,
     message: error.message || 'Terjadi kesalahan yang tidak diketahui.',
@@ -107,32 +96,24 @@ export const handleApiError = (error) => {
   };
 };
 
-/**
- * Check if error is a network error
- */
+
 export const isNetworkError = (error) => {
   return error instanceof NetworkError || 
          (error.name === 'TypeError' && error.message.includes('fetch'));
 };
 
-/**
- * Check if error is a validation error
- */
+
 export const isValidationError = (error) => {
   return error instanceof ValidationError || 
          (error.status && [400, 422].includes(error.status));
 };
 
-/**
- * Check if error is an authentication error
- */
+
 export const isAuthError = (error) => {
   return error.status && [401, 403].includes(error.status);
 };
 
-/**
- * Format error message for display
- */
+
 export const formatErrorMessage = (error) => {
   if (isNetworkError(error)) {
     return 'Koneksi ke server gagal. Periksa koneksi internet Anda.';

@@ -1,7 +1,4 @@
-/**
- * Authentication Controller
- * Controller untuk handle login, register, dan authentication
- */
+
 
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -9,14 +6,12 @@ const admin = require('firebase-admin');
 const AuthMiddleware = require('../middleware/auth');
 
 class AuthController {
-  /**
-   * Login user dengan email dan password
-   */
+  
   static async login(req, res) {
     try {
       const { email, password } = req.body;
 
-      // Cari user di Firestore
+      
       const usersRef = admin.firestore().collection('users');
       const userQuery = await usersRef.where('email', '==', email).get();
 
@@ -31,7 +26,7 @@ class AuthController {
       const userDoc = userQuery.docs[0];
       const userData = userDoc.data();
 
-      // Verifikasi password
+      
       const isPasswordValid = await bcrypt.compare(password, userData.password);
       
       if (!isPasswordValid) {
@@ -42,7 +37,7 @@ class AuthController {
         });
       }
 
-      // Check status user
+      
       if (userData.status !== 'active') {
         return res.status(403).json({
           success: false,
@@ -50,10 +45,10 @@ class AuthController {
         });
       }
 
-      // Clear failed attempts on successful login
+      
       AuthMiddleware.clearFailedAttempts(req);
 
-      // Generate JWT token
+      
       const tokenPayload = {
         id: userDoc.id,
         email: userData.email,
@@ -68,13 +63,13 @@ class AuthController {
         { expiresIn: process.env.JWT_EXPIRES_IN || '24h' }
       );
 
-      // Update last login
+      
       await userDoc.ref.update({
         lastLogin: admin.firestore.FieldValue.serverTimestamp(),
         lastLoginIP: req.ip || req.connection.remoteAddress
       });
 
-      // Response sukses
+      
       res.json({
         success: true,
         message: 'Login berhasil.',
@@ -100,14 +95,12 @@ class AuthController {
     }
   }
 
-  /**
-   * Register user baru (hanya admin yang bisa)
-   */
+  
   static async register(req, res) {
     try {
       const { nama, email, password, role = 'viewer' } = req.body;
 
-      // Check apakah email sudah ada
+      
       const usersRef = admin.firestore().collection('users');
       const existingUser = await usersRef.where('email', '==', email).get();
 
@@ -118,11 +111,11 @@ class AuthController {
         });
       }
 
-      // Hash password
+      
       const saltRounds = 12;
       const hashedPassword = await bcrypt.hash(password, saltRounds);
 
-      // Data user baru
+      
       const newUser = {
         nama,
         email,
@@ -135,7 +128,7 @@ class AuthController {
         lastLoginIP: null
       };
 
-      // Simpan ke Firestore
+      
       const userDoc = await usersRef.add(newUser);
 
       res.status(201).json({
@@ -159,12 +152,10 @@ class AuthController {
     }
   }
 
-  /**
-   * Logout user
-   */
+  
   static async logout(req, res) {
     try {
-      // Update last logout di database
+      
       const usersRef = admin.firestore().collection('users');
       await usersRef.doc(req.user.id).update({
         lastLogout: admin.firestore.FieldValue.serverTimestamp()
@@ -184,12 +175,10 @@ class AuthController {
     }
   }
 
-  /**
-   * Verify token dan get user info
-   */
+  
   static async verifyToken(req, res) {
     try {
-      // Token sudah diverifikasi di middleware
+      
       const usersRef = admin.firestore().collection('users');
       const userDoc = await usersRef.doc(req.user.id).get();
 
@@ -223,12 +212,10 @@ class AuthController {
     }
   }
 
-  /**
-   * Refresh token
-   */
+  
   static async refreshToken(req, res) {
     try {
-      // Generate token baru dengan data user yang sama
+      
       const tokenPayload = {
         id: req.user.id,
         email: req.user.email,
@@ -261,14 +248,12 @@ class AuthController {
     }
   }
 
-  /**
-   * Change password
-   */
+  
   static async changePassword(req, res) {
     try {
       const { currentPassword, newPassword } = req.body;
 
-      // Get user data
+      
       const usersRef = admin.firestore().collection('users');
       const userDoc = await usersRef.doc(req.user.id).get();
 
@@ -281,7 +266,7 @@ class AuthController {
 
       const userData = userDoc.data();
 
-      // Verify current password
+      
       const isCurrentPasswordValid = await bcrypt.compare(currentPassword, userData.password);
       
       if (!isCurrentPasswordValid) {
@@ -291,11 +276,11 @@ class AuthController {
         });
       }
 
-      // Hash new password
+      
       const saltRounds = 12;
       const hashedNewPassword = await bcrypt.hash(newPassword, saltRounds);
 
-      // Update password
+      
       await userDoc.ref.update({
         password: hashedNewPassword,
         passwordChangedAt: admin.firestore.FieldValue.serverTimestamp(),
@@ -316,9 +301,7 @@ class AuthController {
     }
   }
 
-  /**
-   * Get all users (admin only)
-   */
+  
   static async getAllUsers(req, res) {
     try {
       const usersRef = admin.firestore().collection('users');
@@ -353,9 +336,7 @@ class AuthController {
     }
   }
 
-  /**
-   * Update user status (admin only)
-   */
+  
   static async updateUserStatus(req, res) {
     try {
       const { userId } = req.params;

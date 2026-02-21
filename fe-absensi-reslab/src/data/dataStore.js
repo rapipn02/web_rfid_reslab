@@ -5,7 +5,7 @@ class DataStore {
             { id: 2, nama: 'NursyaBani', nim: '210511002', idRfid: 'RF002DEF', hariPiket: ['Selasa'] },
             { id: 3, nama: 'Muhammad Fajri', nim: '210511003', idRfid: 'RF003GHI', hariPiket: ['Rabu', 'Jumat'] },
             { id: 4, nama: 'Asyifa Putri Romansha', nim: '210511004', idRfid: 'RF004JKL', hariPiket: ['Kamis'] },
-            { id: 5, nama: 'Hanaviz', nim: '210511005', idRfid: 'RF005MNO', hariPiket: ['Jumat', 'Sabtu'] },
+            { id: 5, nama: 'Hanaviz', nim: '210511005', idRfid: 'RF005MNO', hariPiket: ['Jumat'] },
             { id: 6, nama: 'Bunga Jacinda', nim: '210511006', idRfid: 'RF006PQR', hariPiket: ['Senin'] },
             { id: 7, nama: 'Muhammad Hafiz', nim: '210511007', idRfid: 'RF007STU', hariPiket: ['Selasa', 'Kamis'] },
             { id: 8, nama: 'Naufal Rafiif Irwan', nim: '210511008', idRfid: 'RF008VWX', hariPiket: ['Rabu'] },
@@ -31,7 +31,7 @@ class DataStore {
         this.subscribers = [];
     }
 
-    // Subscriber pattern untuk update real-time
+    
     subscribe(callback) {
         this.subscribers.push(callback);
         return () => {
@@ -43,7 +43,7 @@ class DataStore {
         this.subscribers.forEach(callback => callback());
     }
 
-    // Member methods
+    
     getMembers() {
         return [...this.members];
     }
@@ -68,7 +68,7 @@ class DataStore {
         if (index !== -1) {
             this.members[index] = { ...this.members[index], ...memberData };
             
-            // Update attendance records with new name
+            
             this.attendance.forEach(record => {
                 if (record.memberId === parseInt(id)) {
                     record.nama = memberData.nama;
@@ -86,7 +86,7 @@ class DataStore {
         if (index !== -1) {
             const deletedMember = this.members.splice(index, 1)[0];
             
-            // Remove related attendance records
+            
             this.attendance = this.attendance.filter(record => record.memberId !== parseInt(id));
             
             this.notify();
@@ -95,7 +95,7 @@ class DataStore {
         return null;
     }
 
-    // Attendance methods
+    
     getAttendance() {
         return [...this.attendance];
     }
@@ -111,7 +111,7 @@ class DataStore {
         return newAttendance;
     }
 
-    // Statistics methods
+    
     getAttendanceStats() {
         const today = new Date().toISOString().split('T')[0];
         const todayAttendance = this.attendance.filter(record => record.tanggal === today);
@@ -124,9 +124,9 @@ class DataStore {
         };
     }
 
-    // Chart data
+    
     getChartData() {
-        // Generate monthly data for the last 5 months
+        
         const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei'];
         return months.map(month => ({
             name: month,
@@ -135,7 +135,7 @@ class DataStore {
         }));
     }
 
-    // Utility methods
+    
     isNimExists(nim, excludeId = null) {
         const trimmedNim = typeof nim === 'string' ? nim.trim() : nim;
         return this.members.some(member => 
@@ -159,6 +159,6 @@ class DataStore {
     }
 }
 
-// Create singleton instance
+
 const dataStore = new DataStore();
 export default dataStore;

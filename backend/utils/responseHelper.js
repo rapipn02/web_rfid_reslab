@@ -1,6 +1,4 @@
-/**
- * Standard API Response Helper
- */
+
 class ResponseHelper {
     static success(res, data = null, message = 'Success', statusCode = 200) {
         return res.status(statusCode).json({

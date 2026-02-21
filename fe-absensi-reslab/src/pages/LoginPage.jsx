@@ -27,14 +27,14 @@ export default function LoginPage() {
     const validateForm = () => {
         const newErrors = {};
 
-        // Email validation
+        
         if (!formData.email.trim()) {
             newErrors.email = 'Email wajib diisi';
         } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email.trim())) {
             newErrors.email = 'Format email tidak valid';
         }
 
-        // Password validation
+        
         if (!formData.password) {
             newErrors.password = 'Password wajib diisi';
         } else if (formData.password.length < 6) {
@@ -52,7 +52,7 @@ export default function LoginPage() {
             [name]: value
         }));
 
-        // Clear error untuk field yang sedang diubah
+        
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -72,7 +72,7 @@ export default function LoginPage() {
         setIsLoading(true);
 
         try {
-            // Call auth context login
+            
             const result = await login({
                 email: formData.email,
                 password: formData.password
@@ -101,7 +101,7 @@ export default function LoginPage() {
 
     return (
         <div data-aos="fade-up" className="flex justify-center items-center min-h-screen bg-gray-100 p-4 font-sans">
-            {/* Alert Notification */}
+            {}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 
@@ -120,7 +120,7 @@ export default function LoginPage() {
             )}
 
             <div className="flex flex-col lg:flex-row w-full max-w-5xl rounded-2xl overflow-hidden shadow-xl">
-                {/* Formulir Login */}
+                {}
                 <div className="w-full lg:w-1/2 bg-white p-8 sm:p-12 flex flex-col justify-center">
                     <div className="flex items-center mb-6 md:mb-10">
                         <img src={ReslabLogo} alt="Reslab Logo" className="w-8 h-8 mr-3" />
@@ -135,15 +135,7 @@ export default function LoginPage() {
                         Masukkan kredensial Anda untuk mengakses sistem
                     </p>
 
-                    {/* Demo Credentials Info */}
-                    <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
-                        <h4 className="font-semibold text-orange-800 text-sm mb-2">Demo Credentials:</h4>
-                        <div className="text-sm text-orange-700">
-                            <p><strong>Email:</strong> admin@reslab.com</p>
-                            <p><strong>Password:</strong> admin123</p>
-                        </div>
-                    </div>
-
+                    
                     <form onSubmit={handleLogin} className="space-y-4 md:space-y-6">
                         <div className="space-y-2">
                             <label htmlFor="email" className="block text-sm font-medium text-gray-700">
@@ -197,15 +189,7 @@ export default function LoginPage() {
                             )}
                         </div>
 
-                        <div className="flex justify-end">
-                            <button
-                                type="button"
-                                onClick={handleForgotPassword}
-                                className="text-sm font-medium text-orange-600 hover:text-orange-500"
-                            >
-                                Lupa Password?
-                            </button>
-                        </div>
+                      
 
                         <button
                             type="submit"
@@ -216,7 +200,7 @@ export default function LoginPage() {
                         </button>
                     </form>
 
-                    {/* Additional Info */}
+                    {}
                     <div className="mt-6 text-center">
                         <p className="text-xs text-gray-500">
                             Sistem Absensi RFID - Reslab Teknik Komputer
@@ -224,7 +208,7 @@ export default function LoginPage() {
                     </div>
                 </div>
 
-                {/* Ilustrasi Samping */}
+                {}
                 <div className="hidden lg:flex lg:w-1/2 bg-orange-500 relative justify-center items-center overflow-hidden">
                     <div className="absolute inset-0 z-0">
                         <div className="absolute top-0 right-0 h-64 w-64 rounded-full bg-orange-400 opacity-50 transform -translate-y-1/2 translate-x-1/2"></div>

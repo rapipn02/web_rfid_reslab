@@ -1,7 +1,7 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight, CheckCircle, AlertTriangle, Info, X, Search } from 'lucide-react';
 
-// Alert/Notification Component
+
 export const Alert = ({ show, message, type = 'success', onClose, autoClose = true }) => {
     React.useEffect(() => {
         if (show && autoClose) {
@@ -64,7 +64,7 @@ export const Alert = ({ show, message, type = 'success', onClose, autoClose = tr
     );
 };
 
-// Pagination Component
+
 export const Pagination = ({ 
     currentPage, 
     totalPages, 
@@ -140,7 +140,7 @@ export const Pagination = ({
     );
 };
 
-// Modal Component
+
 export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     const getSizeClasses = () => {
         switch (size) {
@@ -173,7 +173,7 @@ export const Modal = ({ isOpen, onClose, title, children, size = 'md' }) => {
     );
 };
 
-// Loading Button Component
+
 export const LoadingButton = ({ 
     isLoading, 
     onClick, 
@@ -213,7 +213,7 @@ export const LoadingButton = ({
     );
 };
 
-// Status Badge Component
+
 export const StatusBadge = ({ status, className = '' }) => {
     const getStatusStyles = () => {
         switch (status.toLowerCase()) {
@@ -235,7 +235,7 @@ export const StatusBadge = ({ status, className = '' }) => {
     );
 };
 
-// Search Input Component
+
 export const SearchInput = ({ 
     value, 
     onChange,
@@ -257,7 +257,7 @@ export const SearchInput = ({
     );
 };
 
-// Card Component
+
 export const Card = ({ title, children, className = '', headerAction }) => {
     return (
         <div className={`bg-white rounded-xl shadow-md ${className}`}>
@@ -274,7 +274,7 @@ export const Card = ({ title, children, className = '', headerAction }) => {
     );
 };
 
-// Stats Card Component
+
 export const StatsCard = ({ 
     title, 
     value, 
@@ -314,7 +314,7 @@ export const StatsCard = ({
     );
 };
 
-// Table Component
+
 export const Table = ({ 
     headers, 
     data, 
@@ -357,7 +357,7 @@ export const Table = ({
     );
 };
 
-// Form Input Component
+
 export const FormInput = ({
     label,
     name,
@@ -397,7 +397,7 @@ export const FormInput = ({
     );
 };
 
-// Header Component
+
 export const PageHeader = ({ title, subtitle, rightElement }) => {
     return (
         <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
@@ -421,7 +421,7 @@ export const PageHeader = ({ title, subtitle, rightElement }) => {
     );
 };
 
-// Dropdown Component
+
 export const Dropdown = ({ 
     isOpen, 
     onToggle, 
@@ -457,7 +457,7 @@ export const Dropdown = ({
     );
 };
 
-// Filter Panel Component
+
 export const FilterPanel = ({ 
     isOpen, 
     children, 
@@ -485,7 +485,7 @@ export const FilterPanel = ({
     );
 };
 
-// Empty State Component
+
 export const EmptyState = ({ 
     message, 
     actionLabel, 
@@ -511,7 +511,7 @@ export const EmptyState = ({
     );
 };
 
-// Confirmation Dialog Component
+
 export const ConfirmDialog = ({
     isOpen,
     onClose,
@@ -572,7 +572,7 @@ export const ConfirmDialog = ({
     );
 };
 
-// Loading Spinner Component
+
 export const LoadingSpinner = ({ size = 'md', className = '' }) => {
     const getSizeClasses = () => {
         switch (size) {
@@ -588,7 +588,7 @@ export const LoadingSpinner = ({ size = 'md', className = '' }) => {
     );
 };
 
-// Quick Actions Toolbar Component
+
 export const QuickActions = ({ actions, className = '' }) => {
     return (
         <div className={`flex flex-wrap gap-2 ${className}`}>

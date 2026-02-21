@@ -1,11 +1,14 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { User, ChevronDown, Scan, X, AlertTriangle, CheckCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { User, ChevronDown, Scan, X, AlertTriangle, CheckCircle, Clock, Zap } from 'lucide-react';
 import { MembersApi } from '../api/index.js';
 import { safeTrim } from '../utils/utils';
+import rfidApi from '../api/rfidApi';
 
 export default function TambahAnggota() {
     const navigate = useNavigate();
+    const scanIntervalRef = useRef(null);
+    const scanTimeoutRef = useRef(null);
 
     const [formData, setFormData] = useState({
         nama: '',
@@ -17,6 +20,130 @@ export default function TambahAnggota() {
     const [errors, setErrors] = useState({});
     const [isLoading, setIsLoading] = useState(false);
     const [showAlert, setShowAlert] = useState({ show: false, message: '', type: '' });
+    const [isScanning, setIsScanning] = useState(false);
+    const [scanCountdown, setScanCountdown] = useState(0);
+    const [pendingRegistrations, setPendingRegistrations] = useState([]);
+    const [lastScanCheck, setLastScanCheck] = useState(null);
+
+    
+    useEffect(() => {
+        loadPendingRegistrations();
+    }, []);
+
+    
+    useEffect(() => {
+        return () => {
+            if (scanIntervalRef.current) {
+                clearInterval(scanIntervalRef.current);
+            }
+            if (scanTimeoutRef.current) {
+                clearTimeout(scanTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const loadPendingRegistrations = async () => {
+        try {
+            const response = await rfidApi.getPendingRegistrations();
+            if (response.success) {
+                setPendingRegistrations(response.data || []);
+            }
+        } catch (error) {
+            console.error('Error loading pending registrations:', error);
+        }
+    };
+
+    
+    const startRealtimeScan = async () => {
+        try {
+            setIsScanning(true);
+            setScanCountdown(10);
+            setLastScanCheck(new Date());
+
+            showNotification(' Realtime scan dimulai! Scan RFID card dalam 10 detik...', 'info');
+
+            
+            let timeLeft = 10;
+            const countdownInterval = setInterval(() => {
+                timeLeft -= 1;
+                setScanCountdown(timeLeft);
+                
+                if (timeLeft <= 0) {
+                    clearInterval(countdownInterval);
+                }
+            }, 1000);
+
+            
+            const scanCheckInterval = setInterval(async () => {
+                await checkForNewRealtimeScans();
+            }, 500);
+
+            scanIntervalRef.current = scanCheckInterval;
+
+            
+            const stopTimeout = setTimeout(() => {
+                setIsScanning(false);
+                setScanCountdown(0);
+                clearInterval(countdownInterval);
+                clearInterval(scanCheckInterval);
+                showNotification('⏰ Scan timeout. Coba lagi jika diperlukan.', 'warning');
+            }, 10000);
+
+            scanTimeoutRef.current = stopTimeout;
+
+        } catch (error) {
+            console.error('Error starting realtime scan:', error);
+            setIsScanning(false);
+            setScanCountdown(0);
+            showNotification(' Error memulai scan. Coba lagi.', 'error');
+        }
+    };
+
+    
+    const checkForNewRealtimeScans = async () => {
+        try {
+            
+            const response = await rfidApi.getLatestScans();
+            
+            if (response.success && response.data && response.data.length > 0) {
+                const latestScan = response.data[0]; 
+                
+                
+                if (latestScan.cardId && latestScan.cardId !== formData.idRfid) {
+                    setFormData(prev => ({
+                        ...prev,
+                        idRfid: latestScan.cardId.toUpperCase()
+                    }));
+                    
+                    
+                    setIsScanning(false);
+                    setScanCountdown(0);
+                    
+                    if (scanIntervalRef.current) {
+                        clearInterval(scanIntervalRef.current);
+                    }
+                    if (scanTimeoutRef.current) {
+                        clearTimeout(scanTimeoutRef.current);
+                    }
+                    
+                    
+                    if (latestScan.scanType === 'unknown' || latestScan.processed === false) {
+                        showNotification(`🆔 Kartu belum terdaftar: ${latestScan.cardId} - Silakan isi data untuk registrasi`, 'warning');
+                    } else {
+                        showNotification(`✅ RFID berhasil terdeteksi: ${latestScan.cardId}`, 'success');
+                    }
+                    
+                    
+                    setLastScanCheck(new Date());
+                    
+                    
+                    await loadPendingRegistrations();
+                }
+            }
+        } catch (error) {
+            console.error('Error checking realtime scans:', error);
+        }
+    };
 
     const showNotification = (message, type = 'success') => {
         setShowAlert({ show: true, message, type });
@@ -28,7 +155,7 @@ export default function TambahAnggota() {
     const validateForm = () => {
         const newErrors = {};
 
-        // Validasi nama
+        
         const namaValue = safeTrim(formData.nama);
         if (!namaValue) {
             newErrors.nama = 'Nama wajib diisi';
@@ -36,7 +163,7 @@ export default function TambahAnggota() {
             newErrors.nama = 'Nama minimal 2 karakter';
         }
 
-        // Validasi NIM
+        
         const nimValue = safeTrim(formData.nim);
         if (!nimValue) {
             newErrors.nim = 'NIM wajib diisi';
@@ -45,18 +172,18 @@ export default function TambahAnggota() {
         } else if (nimValue.length < 6) {
             newErrors.nim = 'NIM minimal 6 digit';
         }
-        // Note: Validasi duplikat akan dilakukan di backend
+        
 
-        // Validasi RFID
+        
         const rfidValue = safeTrim(formData.idRfid);
         if (!rfidValue) {
             newErrors.idRfid = 'ID RFID wajib diisi';
         } else if (rfidValue.length < 4) {
             newErrors.idRfid = 'ID RFID minimal 4 karakter';
         }
-        // Note: Validasi duplikat akan dilakukan di backend
+        
 
-        // Validasi Hari Piket
+        
         if (!formData.hariPiket || formData.hariPiket.length === 0) {
             newErrors.hariPiket = 'Minimal pilih satu hari piket';
         }
@@ -72,7 +199,7 @@ export default function TambahAnggota() {
             [name]: value
         }));
 
-        // Clear error untuk field yang sedang diubah
+        
         if (errors[name]) {
             setErrors(prev => ({
                 ...prev,
@@ -88,10 +215,10 @@ export default function TambahAnggota() {
             
             let newHariPiket;
             if (isSelected) {
-                // Remove hari if already selected
+                
                 newHariPiket = currentHariPiket.filter(h => h !== hari);
             } else {
-                // Add hari if not selected
+                
                 newHariPiket = [...currentHariPiket, hari];
             }
             
@@ -101,7 +228,7 @@ export default function TambahAnggota() {
             };
         });
 
-        // Clear error untuk field hari piket
+        
         if (errors.hariPiket) {
             setErrors(prev => ({
                 ...prev,
@@ -110,29 +237,64 @@ export default function TambahAnggota() {
         }
     };
 
-    const handleScan = () => {
-        setIsLoading(true);
-        
-        // Simulate scanning delay
-        setTimeout(() => {
-            // Generate simple RFID ID (dalam implementasi nyata, ini dari scanner RFID)
-            const newRfid = 'RF' + Date.now().toString().slice(-8);
-            setFormData(prev => ({
-                ...prev,
-                idRfid: newRfid
-            }));
+    const handleScan = async () => {
+        if (isScanning) {
             
-            // Clear RFID error jika ada
-            if (errors.idRfid) {
-                setErrors(prev => ({
-                    ...prev,
-                    idRfid: ''
-                }));
+            setIsScanning(false);
+            setScanCountdown(0);
+            
+            if (scanIntervalRef.current) {
+                clearInterval(scanIntervalRef.current);
+            }
+            if (scanTimeoutRef.current) {
+                clearTimeout(scanTimeoutRef.current);
             }
             
+            showNotification('🛑 Scan dibatalkan', 'info');
+            return;
+        }
+
+        
+        await startRealtimeScan();
+    };
+
+    const handleScan_old = async () => {
+        setIsScanning(true);
+        setIsLoading(true);
+        
+        try {
+            
+            await loadPendingRegistrations();
+            
+            if (pendingRegistrations.length > 0) {
+                
+                const latestRegistration = pendingRegistrations[0];
+                const scannedCardId = latestRegistration.cardId;
+                
+                setFormData(prev => ({
+                    ...prev,
+                    idRfid: scannedCardId
+                }));
+                
+                showNotification(`RFID Card ${scannedCardId} detected! Fill in member details.`, 'success');
+                
+                
+                if (errors.idRfid) {
+                    setErrors(prev => ({
+                        ...prev,
+                        idRfid: ''
+                    }));
+                }
+            } else {
+                showNotification('No new RFID scan detected. Please scan a card on the RFID reader first.', 'info');
+            }
+        } catch (error) {
+            console.error('Error during scan:', error);
+            showNotification('Error connecting to RFID scanner', 'error');
+        } finally {
+            setIsScanning(false);
             setIsLoading(false);
-            showNotification('RFID berhasil di-scan!', 'success');
-        }, 1500);
+        }
     };
 
     const handleCancel = () => {
@@ -150,7 +312,7 @@ export default function TambahAnggota() {
         setIsLoading(true);
 
         try {
-            console.log('💾 Saving member data:', formData);
+            console.log('Saving member data:', formData);
             
             const memberData = {
                 nama: safeTrim(formData.nama),
@@ -160,7 +322,7 @@ export default function TambahAnggota() {
             };
 
             const response = await MembersApi.create(memberData);
-            console.log('💾 Member create response:', response);
+            console.log('Member create response:', response);
             
             if (response.success) {
                 showNotification(`Anggota "${memberData.nama}" berhasil ditambahkan!`, 'success');
@@ -169,7 +331,7 @@ export default function TambahAnggota() {
                     navigate('/anggota');
                 }, 1500);
             } else {
-                // Handle validation errors from backend
+                
                 if (response.message.includes('NIM') && response.message.includes('sudah')) {
                     setErrors(prev => ({ ...prev, nim: 'NIM sudah terdaftar' }));
                 } else if (response.message.includes('RFID') && response.message.includes('sudah')) {
@@ -178,7 +340,7 @@ export default function TambahAnggota() {
                 showNotification(response.message || 'Gagal menambahkan anggota', 'error');
             }
         } catch (error) {
-            console.error('❌ Error creating member:', error);
+            console.error('Error creating member:', error);
             showNotification('Terjadi kesalahan saat menambahkan anggota', 'error');
         } finally {
             setIsLoading(false);
@@ -187,7 +349,7 @@ export default function TambahAnggota() {
 
     return (
         <main data-aos="fade-up" className="flex-1 p-4 md:p-8 overflow-y-auto">
-            {/* Alert Notification */}
+            {}
             {showAlert.show && (
                 <div className={`fixed top-4 right-4 z-50 p-4 rounded-lg shadow-lg border-l-4 ${
                     showAlert.type === 'success' 
@@ -205,7 +367,7 @@ export default function TambahAnggota() {
                 </div>
             )}
 
-            {/* Header */}
+            {}
             <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6">
                 <div>
                     <h1 className="text-xl md:text-2xl font-semibold text-gray-800">
@@ -220,10 +382,10 @@ export default function TambahAnggota() {
                 </div>
             </header>
 
-            {/* Form Card */}
+            {}
             <section className="bg-white rounded-xl p-6 shadow-md max-w-2xl w-full mx-auto">
                 <div className="space-y-6">
-                    {/* Nama */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             Nama <span className="text-red-500">*</span>
@@ -245,7 +407,7 @@ export default function TambahAnggota() {
                         </div>
                     </div>
 
-                    {/* NIM */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             NIM <span className="text-red-500">*</span>
@@ -267,7 +429,7 @@ export default function TambahAnggota() {
                         </div>
                     </div>
 
-                    {/* RFID */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             ID RFID <span className="text-red-500">*</span>
@@ -287,14 +449,40 @@ export default function TambahAnggota() {
                                 <button
                                     onClick={handleScan}
                                     disabled={isLoading}
-                                    className="bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors font-medium text-sm"
+                                    className={`px-4 py-2 rounded-lg flex items-center space-x-2 transition-colors font-medium text-sm ${
+                                        isScanning 
+                                            ? 'bg-red-500 hover:bg-red-600 text-white' 
+                                            : 'bg-orange-500 hover:bg-orange-600 disabled:bg-orange-300 text-white'
+                                    }`}
                                 >
-                                    <Scan className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-                                    <span>{isLoading ? 'Scanning...' : 'Scan'}</span>
+                                    {isScanning ? (
+                                        <>
+                                            <X size={16} />
+                                            <span>Stop ({scanCountdown}s)</span>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Zap size={16} />
+                                            <span>Realtime Scan</span>
+                                        </>
+                                    )}
                                 </button>
                             </div>
 
-                        
+                            {}
+                            {isScanning && (
+                                <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                                    <div className="flex items-center space-x-2">
+                                        <Clock size={16} className="text-yellow-600 animate-pulse" />
+                                        <span className="text-yellow-800 text-sm font-medium">
+                                            Scanning aktif... {scanCountdown} detik tersisa
+                                        </span>
+                                    </div>
+                                    <p className="text-yellow-700 text-xs mt-1">
+                                        Tempelkan kartu RFID pada scanner ESP32 sekarang!
+                                    </p>
+                                </div>
+                            )}
 
                             {errors.idRfid && (
                                 <p className="text-red-500 text-xs mt-1">{errors.idRfid}</p>
@@ -302,10 +490,47 @@ export default function TambahAnggota() {
                             <p className="text-gray-500 text-xs mt-1">
                                 ID RFID harus unik untuk setiap anggota
                             </p>
+                            
+                            {}
+                            {pendingRegistrations.length > 0 && (
+                                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                                    <h4 className="text-sm font-medium text-blue-800 mb-2">
+                                        Pending RFID Scans:
+                                    </h4>
+                                    <div className="space-y-2">
+                                        {pendingRegistrations.slice(0, 3).map((reg) => (
+                                            <div key={reg.id} className="flex items-center justify-between text-sm">
+                                                <span className="text-blue-700 font-mono">
+                                                    Card: {reg.cardId}
+                                                </span>
+                                                <button
+                                                    onClick={() => {
+                                                        setFormData(prev => ({
+                                                            ...prev,
+                                                            idRfid: reg.cardId
+                                                        }));
+                                                        if (errors.idRfid) {
+                                                            setErrors(prev => ({...prev, idRfid: ''}));
+                                                        }
+                                                    }}
+                                                    className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                                                >
+                                                    Use This
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                    {pendingRegistrations.length > 3 && (
+                                        <p className="text-xs text-blue-600 mt-2">
+                                            +{pendingRegistrations.length - 3} more cards pending...
+                                        </p>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
 
-                    {/* Hari Piket */}
+                    {}
                     <div className="flex flex-col sm:flex-row sm:items-start gap-3">
                         <label className="text-gray-700 font-medium w-24 flex-shrink-0 pt-2">
                             Hari Piket <span className="text-red-500">*</span>
@@ -315,7 +540,7 @@ export default function TambahAnggota() {
                                 errors.hariPiket ? 'border-red-500' : 'border-gray-300'
                             }`}>
                                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'].map(hari => (
+                                    {['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat'].map(hari => (
                                         <label key={hari} className="flex items-center space-x-2 cursor-pointer">
                                             <input
                                                 type="checkbox"
@@ -338,7 +563,7 @@ export default function TambahAnggota() {
                     </div>
                 </div>
 
-                {/* Action Buttons */}
+                {}
                 <div className="flex justify-end gap-3 mt-8">
                     <button
                         onClick={handleCancel}

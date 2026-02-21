@@ -1,12 +1,7 @@
-/**
- * Authorization Middleware
- * Middleware untuk otorisasi berdasarkan role dan permission
- */
+
 
 class AuthorizationMiddleware {
-  /**
-   * Middleware untuk check multiple roles
-   */
+  
   static requireRoles(...roles) {
     return (req, res, next) => {
       try {
@@ -34,9 +29,7 @@ class AuthorizationMiddleware {
     };
   }
 
-  /**
-   * Middleware untuk check permission spesifik
-   */
+  
   static requirePermission(permission) {
     return (req, res, next) => {
       try {
@@ -47,7 +40,7 @@ class AuthorizationMiddleware {
           });
         }
 
-        // Define permissions untuk setiap role
+        
         const rolePermissions = {
           admin: [
             'read:members',
@@ -96,9 +89,7 @@ class AuthorizationMiddleware {
     };
   }
 
-  /**
-   * Middleware untuk check ownership resource
-   */
+  
   static requireOwnership(resourceParam = 'id') {
     return (req, res, next) => {
       try {
@@ -109,7 +100,7 @@ class AuthorizationMiddleware {
           });
         }
 
-        // Admin bisa mengakses semua resource
+        
         if (req.user.role === 'admin') {
           return next();
         }
@@ -134,9 +125,7 @@ class AuthorizationMiddleware {
     };
   }
 
-  /**
-   * Middleware untuk check time-based access
-   */
+  
   static requireTimeAccess(startHour = 6, endHour = 22) {
     return (req, res, next) => {
       try {
@@ -159,14 +148,12 @@ class AuthorizationMiddleware {
     };
   }
 
-  /**
-   * Middleware untuk check IP whitelist (opsional)
-   */
+  
   static requireWhitelistedIP(whitelist = []) {
     return (req, res, next) => {
       try {
         if (whitelist.length === 0) {
-          return next(); // Skip jika tidak ada whitelist
+          return next(); 
         }
 
         const clientIP = req.ip || req.connection.remoteAddress;
@@ -188,9 +175,7 @@ class AuthorizationMiddleware {
     };
   }
 
-  /**
-   * Middleware untuk check admin role
-   */
+  
   static requireAdmin(req, res, next) {
     try {
       if (!req.user) {

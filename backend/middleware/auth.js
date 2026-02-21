@@ -1,18 +1,13 @@
-/**
- * Authentication Middleware
- * Middleware untuk validasi token JWT dan otorisasi user
- */
+
 
 const jwt = require('jsonwebtoken');
 const admin = require('firebase-admin');
 
 class AuthMiddleware {
-  /**
-   * Middleware untuk verifikasi JWT token
-   */
+  
   static verifyToken(req, res, next) {
     try {
-      // Ambil token dari header Authorization
+      
       const authHeader = req.headers.authorization;
       
       if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -22,13 +17,13 @@ class AuthMiddleware {
         });
       }
 
-      // Extract token dari "Bearer <token>"
+      
       const token = authHeader.substring(7);
 
-      // Verifikasi token
+      
       const decoded = jwt.verify(token, process.env.JWT_SECRET);
       
-      // Simpan user info ke request object
+      
       req.user = decoded;
       
       next();
@@ -52,9 +47,7 @@ class AuthMiddleware {
     }
   }
 
-  /**
-   * Middleware untuk verifikasi role admin
-   */
+  
   static requireAdmin(req, res, next) {
     try {
       if (!req.user) {
@@ -80,9 +73,7 @@ class AuthMiddleware {
     }
   }
 
-  /**
-   * Middleware untuk verifikasi user aktif
-   */
+  
   static requireActiveUser(req, res, next) {
     try {
       if (!req.user) {
@@ -108,9 +99,7 @@ class AuthMiddleware {
     }
   }
 
-  /**
-   * Middleware optional auth - tidak error jika tidak ada token
-   */
+  
   static optionalAuth(req, res, next) {
     try {
       const authHeader = req.headers.authorization;
@@ -123,14 +112,12 @@ class AuthMiddleware {
       
       next();
     } catch (error) {
-      // Jika ada error, tetap lanjut tanpa user info
+      
       next();
     }
   }
 
-  /**
-   * Middleware untuk validasi Firebase ID Token (jika menggunakan Firebase Auth)
-   */
+  
   static async verifyFirebaseToken(req, res, next) {
     try {
       const authHeader = req.headers.authorization;
@@ -144,10 +131,10 @@ class AuthMiddleware {
 
       const idToken = authHeader.substring(7);
 
-      // Verifikasi Firebase ID token
+      
       const decodedToken = await admin.auth().verifyIdToken(idToken);
       
-      // Simpan user info dari Firebase
+      
       req.user = {
         uid: decodedToken.uid,
         email: decodedToken.email,
@@ -165,13 +152,11 @@ class AuthMiddleware {
     }
   }
 
-  /**
-   * Middleware untuk rate limiting login attempts
-   */
+  
   static loginRateLimit() {
     const attempts = new Map();
     const MAX_ATTEMPTS = 5;
-    const BLOCK_TIME = 15 * 60 * 1000; // 15 menit
+    const BLOCK_TIME = 15 * 60 * 1000; 
 
     return (req, res, next) => {
       const ip = req.ip || req.connection.remoteAddress;
@@ -180,7 +165,7 @@ class AuthMiddleware {
       if (attempts.has(ip)) {
         const attemptData = attempts.get(ip);
         
-        // Reset jika sudah lewat waktu block
+        
         if (now - attemptData.lastAttempt > BLOCK_TIME) {
           attempts.delete(ip);
         } else if (attemptData.count >= MAX_ATTEMPTS) {
@@ -196,9 +181,7 @@ class AuthMiddleware {
     };
   }
 
-  /**
-   * Helper untuk record failed login attempt
-   */
+  
   static recordFailedAttempt(req) {
     const ip = req.ip || req.connection.remoteAddress;
     const now = Date.now();
@@ -221,9 +204,7 @@ class AuthMiddleware {
     req.app.locals.loginAttempts = attempts;
   }
 
-  /**
-   * Helper untuk clear successful login attempt
-   */
+  
   static clearFailedAttempts(req) {
     const ip = req.ip || req.connection.remoteAddress;
     const attempts = req.app.locals.loginAttempts || new Map();

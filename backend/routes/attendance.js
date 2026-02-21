@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const AttendanceController = require('../controllers/attendanceController');
 const ValidationMiddleware = require('../middleware/validation');
+const AttendanceMiddleware = require('../middleware/attendanceMiddleware');
+const { validateWorkingHours, checkDuplicateAttendance } = require('../middleware/autoCheckout');
 const { 
   verifyToken, 
   requirePermission, 
@@ -9,7 +11,7 @@ const {
   sanitizeInput 
 } = require('../middleware');
 
-// GET /api/attendance - Get all attendance records (requires read permission)
+
 router.get('/', 
   verifyToken,
   requirePermission('read:attendance'),
@@ -17,49 +19,80 @@ router.get('/',
   AttendanceController.getAllAttendance
 );
 
-// GET /api/attendance/today - Get today's attendance (requires read permission)
+
 router.get('/today', 
   verifyToken,
   requirePermission('read:attendance'),
   AttendanceController.getTodayAttendance
 );
 
-// GET /api/attendance/stats - Get attendance statistics (requires read permission)
+
+router.get('/today-with-members', 
+  verifyToken,
+  requirePermission('read:attendance'),
+  AttendanceController.getTodayAttendanceWithMembers
+);
+
+
 router.get('/stats', 
   verifyToken,
   requirePermission('read:attendance'),
   AttendanceController.getAttendanceStats
 );
 
-// GET /api/attendance/auto-update-status - Auto update status for all members
+
 router.get('/auto-update-status', 
   verifyToken,
   requirePermission('update:attendance'),
   AttendanceController.autoUpdateStatus
 );
 
-// GET /api/attendance/stream - Server-Sent Events for real-time updates
+
 router.get('/stream', 
   verifyToken,
   requirePermission('read:attendance'),
   AttendanceController.streamAttendanceUpdates
 );
 
-// GET /api/attendance/:id - Get attendance by ID (requires read permission)
+
 router.get('/:id', 
   verifyToken,
   requirePermission('read:attendance'),
   AttendanceController.getAttendanceById
 );
 
-// GET /api/attendance/member/:memberId - Get attendance by member ID (requires read permission)
+
 router.get('/member/:memberId', 
   verifyToken,
   requirePermission('read:attendance'),
   AttendanceController.getAttendanceByMember
 );
 
-// POST /api/attendance - Create manual attendance record (requires create permission)
+
+router.post('/check-in', 
+  sanitizeInput,
+  verifyToken,
+  AttendanceMiddleware.validateWorkingHours,
+  AttendanceController.checkIn
+);
+
+
+router.post('/check-out', 
+  sanitizeInput,
+  verifyToken,
+  AttendanceMiddleware.validateWorkingHours,
+  AttendanceMiddleware.determineAttendanceStatus,
+  AttendanceController.checkOut
+);
+
+
+router.post('/force-auto-checkout', 
+  verifyToken,
+  requirePermission('admin'),
+  AttendanceController.forceAutoCheckout
+);
+
+
 router.post('/', 
   sanitizeInput,
   verifyToken,
@@ -69,7 +102,7 @@ router.post('/',
   AttendanceController.createAttendance
 );
 
-// POST /api/attendance/manual - Create/Update manual attendance with easier interface (NO RFID REQUIRED)
+
 router.post('/manual', 
   sanitizeInput,
   verifyToken,
@@ -77,7 +110,7 @@ router.post('/manual',
   AttendanceController.createManualAttendance
 );
 
-// PUT /api/attendance/:id - Update attendance record (requires update permission)
+
 router.put('/:id', 
   sanitizeInput,
   verifyToken,
@@ -87,11 +120,63 @@ router.put('/:id',
   AttendanceController.updateAttendance
 );
 
-// DELETE /api/attendance/:id - Delete attendance record (requires delete permission)
+
 router.delete('/:id', 
   verifyToken,
   requirePermission('delete:attendance'),
   AttendanceController.deleteAttendance
+);
+
+
+router.post('/checkin',
+  verifyToken,
+  validateWorkingHours,
+  checkDuplicateAttendance,
+  ValidationMiddleware.validateAttendance,
+  AttendanceController.checkIn
+);
+
+
+router.post('/checkout',
+  verifyToken,
+  validateWorkingHours,
+  ValidationMiddleware.validateCheckout,
+  AttendanceController.checkOut
+);
+
+
+router.get('/today/:memberId',
+  verifyToken,
+  requirePermission('read:attendance'),
+  AttendanceController.getTodayAttendance
+);
+
+
+router.post('/generate-absent',
+  verifyToken,
+  requirePermission('write:attendance'),
+  AttendanceController.generateAbsentRecords
+);
+
+
+router.post('/auto-checkout',
+  verifyToken,
+  requirePermission('write:attendance'),
+  AttendanceController.manualAutoCheckout
+);
+
+
+router.post('/clean-duplicates',
+  verifyToken,
+  requirePermission('write:attendance'),
+  AttendanceController.cleanDuplicateAttendance
+);
+
+
+router.post('/fix-today-duplicates',
+  verifyToken,
+  requirePermission('write:attendance'),
+  AttendanceController.fixTodayDuplicates
 );
 
 module.exports = router;

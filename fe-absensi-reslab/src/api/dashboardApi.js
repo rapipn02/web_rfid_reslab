@@ -1,15 +1,10 @@
-/**
- * Dashboard API Service
- * Service untuk mengakses API dashboard
- */
+
 
 import httpClient from './httpClient.js';
 import { API_ENDPOINTS } from './config.js';
 
 class DashboardApi {
-  /**
-   * Get dashboard data (stats, recent attendance, chart data)
-   */
+  
   static async getDashboardData() {
     try {
       const response = await httpClient.get('/dashboard');
@@ -20,9 +15,7 @@ class DashboardApi {
     }
   }
 
-  /**
-   * Get attendance summary untuk periode tertentu
-   */
+  
   static async getAttendanceSummary(startDate = null, endDate = null) {
     try {
       const params = {};
@@ -37,9 +30,7 @@ class DashboardApi {
     }
   }
 
-  /**
-   * Get quick stats untuk widget dashboard
-   */
+  
   static async getQuickStats() {
     try {
       const response = await this.getDashboardData();
@@ -50,9 +41,7 @@ class DashboardApi {
     }
   }
 
-  /**
-   * Get chart data untuk dashboard
-   */
+  
   static async getChartData() {
     try {
       const response = await this.getDashboardData();
@@ -63,9 +52,7 @@ class DashboardApi {
     }
   }
 
-  /**
-   * Get chart data dengan filter periode
-   */
+  
   static async getChartDataWithFilter(period = 'weekly') {
     try {
       const response = await httpClient.get(`/dashboard/chart?period=${period}`);
@@ -76,9 +63,7 @@ class DashboardApi {
     }
   }
 
-  /**
-   * Get recent attendance untuk dashboard
-   */
+  
   static async getRecentAttendance() {
     try {
       const response = await this.getDashboardData();
